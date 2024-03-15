@@ -1,0 +1,10 @@
+version: "3"
+services:
+  develop:
+    build: .
+    platform: "linux/amd64"
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    working_dir: /ws/lora-device
+    volumes:
+      - $PWD:/ws/lora-device
