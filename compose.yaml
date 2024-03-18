@@ -1,0 +1,35 @@
+services:
+
+  node-red:
+    image: nodered/node-red:3.1
+    ports:
+      - 1880:1880
+    volumes:
+      - nodered-store:/data
+
+  influx-db:
+    image: influxdb:2.7.5-alpine
+    ports:
+      - 8086:8086
+    volumes:
+      - influxdb2-store:/var/lib/influxdb2
+      - influxdb2-config:/etc/influxdb2
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: username
+      DOCKER_INFLUXDB_INIT_PASSWORD: password
+      DOCKER_INFLUXDB_INIT_ORG: orgname
+      DOCKER_INFLUXDB_INIT_BUCKET: bucketname
+
+  grafana:
+    image: grafana/grafana:10.0.12
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana-store:/var/lib/grafana
+
+volumes:
+  nodered-store:
+  influxdb2-store:
+  influxdb2-config:
+  grafana-store:
