@@ -6,5 +6,7 @@ services:
     stdin_open: true # docker run -i
     tty: true        # docker run -t
     working_dir: /ws/lora-device
+    privileged: true
     volumes:
       - $PWD:/ws/lora-device
+      - /dev/ttyACM0:/dev/ttyACM0

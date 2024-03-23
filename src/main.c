@@ -4,11 +4,11 @@
 #include "cyhal_spi.h"
 
 /* SPI baud rate in Hz */
-#define SPI_FREQ_HZ 32000000.0
+#define SPI_FREQ_HZ 1000
 /* Delay of 1000ms between commands */
 #define CMD_TO_CMD_DELAY 1000UL
 /* SPI transfer bits per frame */
-#define BITS_PER_FRAME  8
+#define BITS_PER_FRAME  16
 
 /*****************************    Write Mask   *****************************/
 #define RH_SPI_WRITE_MASK 0x80
@@ -119,6 +119,7 @@
 void handle_error(uint32_t status) {
     if (status != CY_RSLT_SUCCESS) {
         CY_ASSERT(0);
+        printf("Error\r\n");
     }
 }
 
@@ -148,9 +149,7 @@ int main(void) {
            "HAL: SPI Master "
            "*************** \r\n\n");
 
-    printf("Configuring SPI master...\r\n");
-
-    // TODO(marco): Use correct config
+    printf("Configuring SPI master...");
     result = cyhal_spi_init(
         &mSPI,
         CYBSP_SPI_MOSI,
@@ -163,52 +162,60 @@ int main(void) {
         false
     );
     handle_error(result);
+    printf("done\r\n");
 
-    /* Set the SPI baud rate */
+    printf("Set SPI frequency...");
     result = cyhal_spi_set_frequency(
         &mSPI, 
         SPI_FREQ_HZ
     );
     handle_error(result);
+    printf("done\r\n");
 
     /* Enable interrupts */
     __enable_irq();
 
-    uint8_t data = RH_RF95_MODE_SLEEP | RH_RF95_LONG_RANGE_MODE;
-    uint8_t cmd = RH_RF95_REG_01_OP_MODE | RH_SPI_WRITE_MASK;
-    uint8_t msg[] = {cmd, data};
-    result = cyhal_spi_send(&mSPI, (uint32_t) msg);
+    printf("Send SX1276 config...");
+    uint8_t msg[] = {
+        RH_RF95_REG_01_OP_MODE | RH_SPI_WRITE_MASK,
+        RH_RF95_MODE_SLEEP | RH_RF95_LONG_RANGE_MODE
+    };
+    result = cyhal_spi_send(&mSPI, *msg);
     handle_error(result);
+    printf("done\r\n");
+    printf("sent %x\r\n", (uint16_t) *msg);
 
-    uint8_t tx_msg = RH_RF95_REG_01_OP_MODE | ~RH_SPI_WRITE_MASK;
-    uint8_t rx_msg;
-    uint8_t tx_length, rx_length;
-    uint8_t fill = 0x00;
+    printf("Check SX1276 config...");
+    uint8_t tx_msg[2];
+    tx_msg[0] = RH_RF95_REG_01_OP_MODE & ~RH_SPI_WRITE_MASK;
+    uint8_t rx_msg[2];
+    int tx_length = sizeof(tx_msg), rx_length = sizeof(rx_msg);
+    printf("pre %x\r\n", (uint16_t) *tx_msg);
     result = cyhal_spi_transfer(
         &mSPI, 
         &tx_msg,
         tx_length, 
         &rx_msg, 
         rx_length,
-        fill
+        0xFF
     );
     handle_error(result);
 
-    printf("sent %x\n", data);
-    printf("recv %x\n", rx_msg);
+    printf("sent %x (%d)\r\n", tx_msg[0], tx_length);
+    printf("recv %x (%d)\r\n", rx_msg[1], rx_length);
 
-    return 0;
 
     for (;;) {
         /* Toggle the slave LED state */
-        cmd_send = (cmd_send == CYBSP_LED_STATE_OFF) ?
-                     CYBSP_LED_STATE_ON : CYBSP_LED_STATE_OFF;
+        //cmd_send = (cmd_send == CYBSP_LED_STATE_OFF) ?
+        //             CYBSP_LED_STATE_ON : CYBSP_LED_STATE_OFF;
 
-        /* Send the command packet to the slave */
-        result = cyhal_spi_send(&mSPI, cmd_send);
+        ///* Send the command packet to the slave */
+        //result = cyhal_spi_send(&mSPI, cmd_send);
 
-        handle_error(result);
+        //handle_error(result);
 
+        printf("loop\n");
         /* Give delay between commands */
         cyhal_system_delay_ms(CMD_TO_CMD_DELAY);
     }
