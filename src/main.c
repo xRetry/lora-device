@@ -1,10 +1,14 @@
+#include "cycfg_pins.h"
 #include "cyhal.h"
 #include "cybsp.h"
 #include "cy_retarget_io.h"
+#include "cyhal_gpio.h"
 #include "cyhal_spi.h"
+#include <stdint.h>
+#include "sht3x.h"
 
 /* SPI baud rate in Hz */
-#define SPI_FREQ_HZ 1000
+#define SPI_FREQ_HZ 1000000
 /* Delay of 1000ms between commands */
 #define CMD_TO_CMD_DELAY 1000UL
 /* SPI transfer bits per frame */
@@ -118,12 +122,14 @@
 
 void handle_error(uint32_t status) {
     if (status != CY_RSLT_SUCCESS) {
-        CY_ASSERT(0);
         printf("Error\r\n");
+        CY_ASSERT(0);
     }
 }
 
 int main(void) {
+    //cy_retarget_io_init(CYBSP_DEBUG_UART_TX, CYBSP_DEBUG_UART_RX, CY_RETARGET_IO_BAUDRATE);
+
     cy_rslt_t result;
     uint32_t cmd_send = CYBSP_LED_STATE_OFF;
     cyhal_spi_t mSPI;
@@ -144,10 +150,6 @@ int main(void) {
 
     /* \x1b[2J\x1b[;H - ANSI ESC sequence for clear screen */
     printf("\x1b[2J\x1b[;H");
-
-    printf("*************** "
-           "HAL: SPI Master "
-           "*************** \r\n\n");
 
     printf("Configuring SPI master...");
     result = cyhal_spi_init(
@@ -176,46 +178,77 @@ int main(void) {
     __enable_irq();
 
     printf("Send SX1276 config...");
-    uint8_t msg[] = {
-        RH_RF95_REG_01_OP_MODE | RH_SPI_WRITE_MASK,
-        RH_RF95_MODE_SLEEP | RH_RF95_LONG_RANGE_MODE
-    };
-    result = cyhal_spi_send(&mSPI, *msg);
+    //uint32_t msg = RH_RF95_REG_01_OP_MODE | RH_SPI_WRITE_MASK;
+    //msg ^= RH_RF95_MODE_SLEEP | RH_RF95_LONG_RANGE_MODE << 8;
+    uint32_t msg = 0x8180;
+    result = cyhal_spi_send(&mSPI, msg);
     handle_error(result);
     printf("done\r\n");
-    printf("sent %x\r\n", (uint16_t) *msg);
+    printf("sent %x\r\n", msg);
 
     printf("Check SX1276 config...");
-    uint8_t tx_msg[2];
-    tx_msg[0] = RH_RF95_REG_01_OP_MODE & ~RH_SPI_WRITE_MASK;
-    uint8_t rx_msg[2];
-    int tx_length = sizeof(tx_msg), rx_length = sizeof(rx_msg);
-    printf("pre %x\r\n", (uint16_t) *tx_msg);
-    result = cyhal_spi_transfer(
-        &mSPI, 
-        &tx_msg,
-        tx_length, 
-        &rx_msg, 
-        rx_length,
-        0xFF
-    );
-    handle_error(result);
 
-    printf("sent %x (%d)\r\n", tx_msg[0], tx_length);
-    printf("recv %x (%d)\r\n", rx_msg[1], rx_length);
+    //uint8_t tx_msg[2];
+    //tx_msg[0] = 0x1;
+    //uint8_t rx_msg[2];
+    //printf("pre %x\r\n", tx_msg[0]);
+    //printf("pre %x\r\n", tx_msg[1]);
+    //result = cyhal_spi_transfer(
+    //    &mSPI, 
+    //    tx_msg,
+    //    2u,
+    //    rx_msg, 
+    //    2u,
+    //    0xFF
+    //);
+    //handle_error(result);
+
+    //printf("recv %x\r\n", rx_msg[0]);
+    //printf("recv %x\r\n", rx_msg[1]);
+
+    uint32_t tx_msg = 0x100; //RH_RF95_REG_01_OP_MODE & ~RH_SPI_WRITE_MASK;
+    uint32_t rx_msg;
+    if (CY_RSLT_SUCCESS == cyhal_spi_send(&mSPI, tx_msg)) {
+        result = cyhal_spi_recv(&mSPI, &tx_msg);
+        handle_error(result);
+
+    }
+
+    printf("recv %x\r\n", tx_msg);
+    printf("recv %x\r\n", rx_msg);
+
+    printf("Initializing SHT31...");
+    sensirion_i2c_init();
+    printf("done\r\n");
+
+    printf("Probing SHT31...\r\n");
+    while (sht3x_probe(SHT3X_I2C_ADDR_DFLT) != STATUS_OK) {
+        printf("SHT31 sensor probing failed\r\n");
+    }
+    printf("SHT31 sensor probing successful\r\n");
 
 
     for (;;) {
-        /* Toggle the slave LED state */
-        //cmd_send = (cmd_send == CYBSP_LED_STATE_OFF) ?
-        //             CYBSP_LED_STATE_ON : CYBSP_LED_STATE_OFF;
+        int32_t temperature, humidity;
+        int8_t ret = sht3x_measure_blocking_read(
+            SHT3X_I2C_ADDR_DFLT,
+            &temperature, 
+            &humidity
+        );
+        if (ret == STATUS_OK) {
+            printf("measured temperature: %0.2f degreeCelsius, "
+                   "measured humidity: %0.2f percentRH\r\n",
+                   temperature / 1000.0f, humidity / 1000.0f);
+        } else {
+            printf("error reading measurement\r\n");
+        }
 
         ///* Send the command packet to the slave */
         //result = cyhal_spi_send(&mSPI, cmd_send);
 
         //handle_error(result);
 
-        printf("loop\n");
+        printf("loop\r\n");
         /* Give delay between commands */
         cyhal_system_delay_ms(CMD_TO_CMD_DELAY);
     }
