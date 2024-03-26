@@ -24,3 +24,5 @@ echo "export TERM=screen-256color-bce" >> $HOME/.bashrc
 
 nvim --headless +'TSInstall c cpp' +'MasonInstall clangd' +'sleep 40' +qall
 
+apt install -y screen
+
