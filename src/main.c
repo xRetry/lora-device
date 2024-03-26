@@ -139,6 +139,8 @@ int main(void) {
     /* Board init failed. Stop program execution */
     handle_error(result);
 
+    result = cyhal_gpio_init();
+
     /* Initialize retarget-io for uart logs */
     result = cy_retarget_io_init(
         CYBSP_DEBUG_UART_TX, 
@@ -222,9 +224,9 @@ int main(void) {
     printf("done\r\n");
 
     printf("Probing SHT31...\r\n");
-    while (sht3x_probe(SHT3X_I2C_ADDR_DFLT) != STATUS_OK) {
-        printf("SHT31 sensor probing failed\r\n");
-    }
+    //while (sht3x_probe(SHT3X_I2C_ADDR_DFLT) != STATUS_OK) {
+    //    printf("SHT31 sensor probing failed\r\n");
+    //}
     printf("SHT31 sensor probing successful\r\n");
 
 

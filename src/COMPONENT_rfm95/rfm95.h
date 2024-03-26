@@ -2,6 +2,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "cyhal_gpio.h"
+#include "cyhal_spi.h"
 
 #ifndef RFM95_SPI_TIMEOUT
 #define RFM95_SPI_TIMEOUT 10
@@ -97,12 +99,12 @@ typedef struct {
 	/**
 	 * The handle to the SPI bus for the device.
 	 */
-	SPI_HandleTypeDef *spi_handle;
+	 cyhal_spi_t *spi_handle;
 
 	/**
 	 * The port of the NSS pin.
 	 */
-	GPIO_TypeDef *nss_port;
+	cyhal_gpio_t *nss_port;
 
 	/**
 	 * The NSS pin.
@@ -112,7 +114,7 @@ typedef struct {
 	/**
 	 * The port of the RST pin.
 	 */
-	GPIO_TypeDef *nrst_port;
+	cyhal_gpio_t *nrst_port;
 
 	/**
 	 * The RST pin.

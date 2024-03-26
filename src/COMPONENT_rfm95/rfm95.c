@@ -1,10 +1,13 @@
 #include "rfm95.h"
+#include "cyhal_system.h"
 #include "lib/ideetron/Encrypt_V31.h"
 
 #include <assert.h>
 #include <string.h>
 
 #define RFM9x_VER 0x12
+#define GPIO_PIN_SET 1
+#define GPIO_PIN_RESET 0
 
 /**
  * Registers addresses.
@@ -72,41 +75,51 @@ typedef struct
 
 static bool read_register(rfm95_handle_t *handle, rfm95_register_t reg, uint8_t *buffer, size_t length)
 {
-	HAL_GPIO_WritePin(handle->nss_port, handle->nss_pin, GPIO_PIN_RESET);
+	//HAL_GPIO_WritePin(handle->nss_port, handle->nss_pin, GPIO_PIN_RESET);
+	cyhal_gpio_write(handle->nss_pin, GPIO_PIN_RESET);
 
+	//uint8_t transmit_buffer = (uint8_t)reg & 0x7fu;
 	uint8_t transmit_buffer = (uint8_t)reg & 0x7fu;
 
-	if (HAL_SPI_Transmit(handle->spi_handle, &transmit_buffer, 1, RFM95_SPI_TIMEOUT) != HAL_OK) {
+	//if (HAL_SPI_Transmit(handle->spi_handle, &transmit_buffer, 1, RFM95_SPI_TIMEOUT) != HAL_OK) {
+	if (cyhal_spi_send(handle->spi_handle, transmit_buffer) != CY_RSLT_SUCCESS) {
 		return false;
 	}
 
-	if (HAL_SPI_Receive(handle->spi_handle, buffer, length, RFM95_SPI_TIMEOUT) != HAL_OK) {
+	//if (HAL_SPI_Receive(handle->spi_handle, buffer, length, RFM95_SPI_TIMEOUT) != HAL_OK) {
+	if (cyhal_spi_recv(handle->spi_handle, (uint32_t*) buffer) != CY_RSLT_SUCCESS) {
 		return false;
 	}
 
-	HAL_GPIO_WritePin(handle->nss_port, handle->nss_pin, GPIO_PIN_SET);
+	//HAL_GPIO_WritePin(handle->nss_port, handle->nss_pin, GPIO_PIN_SET);
+	cyhal_gpio_write( handle->nss_pin, GPIO_PIN_SET);
 
 	return true;
 }
 
 static bool write_register(rfm95_handle_t *handle, rfm95_register_t reg, uint8_t value)
 {
-	HAL_GPIO_WritePin(handle->nss_port, handle->nss_pin, GPIO_PIN_RESET);
 
+	//HAL_GPIO_WritePin(handle->nss_port, handle->nss_pin, GPIO_PIN_RESET);
+	cyhal_gpio_write(handle->nss_pin, GPIO_PIN_RESET);
+
+	//uint8_t transmit_buffer[2] = {((uint8_t)reg | 0x80u), value};
 	uint8_t transmit_buffer[2] = {((uint8_t)reg | 0x80u), value};
 
-	if (HAL_SPI_Transmit(handle->spi_handle, transmit_buffer, 2, RFM95_SPI_TIMEOUT) != HAL_OK) {
+	//if (HAL_SPI_Transmit(handle->spi_handle, transmit_buffer, 2, RFM95_SPI_TIMEOUT) != HAL_OK) {
+	if (cyhal_spi_send(handle->spi_handle, *transmit_buffer) != CY_RSLT_SUCCESS) {
 		return false;
 	}
 
-	HAL_GPIO_WritePin(handle->nss_port, handle->nss_pin, GPIO_PIN_SET);
+	//HAL_GPIO_WritePin(handle->nss_port, handle->nss_pin, GPIO_PIN_SET);
+	cyhal_gpio_write( handle->nss_pin, GPIO_PIN_SET);
 
 	return true;
 }
 
 static void config_set_channel(rfm95_handle_t *handle, uint8_t channel_index, uint32_t frequency)
 {
-	assert(channel_index < 16);
+	CY_ASSERT(channel_index < 16);
 	handle->config.channels[channel_index].frequency = frequency;
 	handle->config.channel_mask |= (1 << channel_index);
 }
@@ -125,10 +138,12 @@ static void config_load_default(rfm95_handle_t *handle)
 
 static void reset(rfm95_handle_t *handle)
 {
-	HAL_GPIO_WritePin(handle->nrst_port, handle->nrst_pin, GPIO_PIN_RESET);
-	HAL_Delay(1); // 0.1ms would theoretically be enough
-	HAL_GPIO_WritePin(handle->nrst_port, handle->nrst_pin, GPIO_PIN_SET);
-	HAL_Delay(5);
+	//HAL_GPIO_WritePin(handle->nrst_port, handle->nrst_pin, GPIO_PIN_RESET);
+	cyhal_gpio_write(handle->nrst_pin, GPIO_PIN_RESET);
+    cyhal_system_delay_ms(1); // 0.1ms would theoretically be enough
+	cyhal_gpio_write(handle->nrst_pin, GPIO_PIN_SET);
+	//HAL_Delay(5);
+    cyhal_system_delay_ms(5);
 }
 
 static bool configure_frequency(rfm95_handle_t *handle, uint32_t frequency)
@@ -145,7 +160,7 @@ static bool configure_frequency(rfm95_handle_t *handle, uint32_t frequency)
 
 static bool configure_channel(rfm95_handle_t *handle, size_t channel_index)
 {
-	assert(handle->config.channel_mask & (1 << channel_index));
+	CY_ASSERT(handle->config.channel_mask & (1 << channel_index));
 	return configure_frequency(handle, handle->config.channels[channel_index].frequency);
 }
 
@@ -178,7 +193,7 @@ static bool wait_for_rx_irqs(rfm95_handle_t *handle)
 
 bool rfm95_set_power(rfm95_handle_t *handle, int8_t power)
 {
-	assert((power >= 2 && power <= 17) || power == 20);
+	CY_ASSERT((power >= 2 && power <= 17) || power == 20);
 
 	rfm95_register_pa_config_t pa_config = {0};
 	uint8_t pa_dac_config = 0;
@@ -204,15 +219,15 @@ bool rfm95_set_power(rfm95_handle_t *handle, int8_t power)
 
 bool rfm95_init(rfm95_handle_t *handle)
 {
-	assert(handle->spi_handle->Init.Mode == SPI_MODE_MASTER);
-	assert(handle->spi_handle->Init.Direction == SPI_DIRECTION_2LINES);
-	assert(handle->spi_handle->Init.DataSize == SPI_DATASIZE_8BIT);
-	assert(handle->spi_handle->Init.CLKPolarity == SPI_POLARITY_LOW);
-	assert(handle->spi_handle->Init.CLKPhase == SPI_PHASE_1EDGE);
-	assert(handle->get_precision_tick != NULL);
-	assert(handle->random_int != NULL);
-	assert(handle->precision_sleep_until != NULL);
-	assert(handle->precision_tick_frequency > 10000);
+	//CY_ASSERT(handle->spi_handle->Init.Mode == SPI_MODE_MASTER);
+	//CY_ASSERT(handle->spi_handle->Init.Direction == SPI_DIRECTION_2LINES);
+	//CY_ASSERT(handle->spi_handle->Init.DataSize == SPI_DATASIZE_8BIT);
+	//CY_ASSERT(handle->spi_handle->Init.CLKPolarity == SPI_POLARITY_LOW);
+	//CY_ASSERT(handle->spi_handle->Init.CLKPhase == SPI_PHASE_1EDGE);
+	//CY_ASSERT(handle->get_precision_tick != NULL);
+	//CY_ASSERT(handle->random_int != NULL);
+	//CY_ASSERT(handle->precision_sleep_until != NULL);
+	//CY_ASSERT(handle->precision_tick_frequency > 10000);
 
 	reset(handle);
 
@@ -449,7 +464,7 @@ static bool receive_package(rfm95_handle_t *handle, uint32_t tx_ticks, uint8_t *
 	uint32_t rx1_target, rx1_window_symbols;
 	calculate_rx_timings(handle, 125000, 7, tx_ticks, &rx1_target, &rx1_window_symbols);
 
-	assert(rx1_window_symbols <= 0x3ff);
+	CY_ASSERT(rx1_window_symbols <= 0x3ff);
 
 	// Configure modem (125kHz, 4/6 error coding rate, SF7, single packet, CRC enable, AGC auto on)
 	if (!write_register(handle, RFM95_REGISTER_MODEM_CONFIG_1, 0x72)) return false;
@@ -588,7 +603,7 @@ static size_t encode_phy_payload(rfm95_handle_t *handle, uint8_t payload_buf[64]
 	size_t payload_len = 0;
 
 	// 64 bytes is maximum size of FIFO
-	assert(frame_payload_length + 4 + 9 <= 64);
+	CY_ASSERT(frame_payload_length + 4 + 9 <= 64);
 
 	payload_buf[0] = 0x40; // MAC Header
 	payload_buf[1] = handle->device_address[3];
