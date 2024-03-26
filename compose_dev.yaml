@@ -9,4 +9,4 @@ services:
     privileged: true
     volumes:
       - $PWD:/ws/lora-device
-      - /dev/ttyACM0:/dev/ttyACM0
+      - /dev:/dev
