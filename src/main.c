@@ -2,10 +2,17 @@
 #include "cyhal.h"
 #include "cybsp.h"
 #include "cy_retarget_io.h"
+#include "cyhal_clock.h"
+#include "cyhal_clock_impl.h"
 #include "cyhal_gpio.h"
+#include "cyhal_hw_types.h"
+#include "cyhal_lptimer.h"
 #include "cyhal_spi.h"
 #include <stdint.h>
+#include "cyhal_system.h"
 #include "sht3x.h"
+#include "rfm95.h"
+#include "cy_sysclk.h"
 
 /* SPI baud rate in Hz */
 #define SPI_FREQ_HZ 1000000
@@ -127,6 +134,19 @@ void handle_error(uint32_t status) {
     }
 }
 
+cyhal_lptimer_t lptimer;
+cyhal_lptimer_info_t lptimer_info;
+
+uint32_t get_tick() {
+    return cyhal_lptimer_read(&lptimer);
+}
+
+void sleep_until_tick(unsigned int tick_count) {
+    // TODO(marco): Timings are off quite a lot
+    double sleep_sec = (double) tick_count / (double) lptimer_info.frequency_hz;
+    cyhal_system_delay_us(sleep_sec * 1e6);
+}
+
 int main(void) {
     //cy_retarget_io_init(CYBSP_DEBUG_UART_TX, CYBSP_DEBUG_UART_RX, CY_RETARGET_IO_BAUDRATE);
 
@@ -139,7 +159,8 @@ int main(void) {
     /* Board init failed. Stop program execution */
     handle_error(result);
 
-    result = cyhal_gpio_init();
+    //result = cyhal_gpio_init(CYBSP_SPI_CS, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG, 1);
+    //handle_error(result);
 
     /* Initialize retarget-io for uart logs */
     result = cy_retarget_io_init(
@@ -180,13 +201,40 @@ int main(void) {
     __enable_irq();
 
     printf("Send SX1276 config...");
+
+    result = cyhal_lptimer_init(&lptimer);
+    handle_error(result);
+
+    cyhal_lptimer_get_info(&lptimer, &lptimer_info);
+    
+    rfm95_handle_t rfm_handle = {
+        .spi_handle = &mSPI,
+        .get_precision_tick = get_tick,
+        .random_int = NULL,
+        .precision_sleep_until = sleep_until_tick,
+        .precision_tick_frequency = lptimer_info.frequency_hz,
+        .nss_pin = CYBSP_SPI_CS,
+        .nss_port = NULL,
+        .nrst_pin = NULL,
+        .nss_port = NULL,
+        .network_session_key = NULL,
+        .application_session_key = NULL,
+        .get_battery_level = NULL,
+        .device_address = NULL,
+        .precision_tick_drift_ns_per_s = NULL,
+        .receive_mode = NULL,
+        .config = NULL, // can be NULL
+        .on_after_interrupts_configured = NULL, // can be NULL
+    };
+    //rfm95_init(&rfm_handle);
+    
     //uint32_t msg = RH_RF95_REG_01_OP_MODE | RH_SPI_WRITE_MASK;
     //msg ^= RH_RF95_MODE_SLEEP | RH_RF95_LONG_RANGE_MODE << 8;
-    uint32_t msg = 0x8180;
-    result = cyhal_spi_send(&mSPI, msg);
-    handle_error(result);
-    printf("done\r\n");
-    printf("sent %x\r\n", msg);
+    //uint32_t msg = 0x8180;
+    //result = cyhal_spi_send(&mSPI, msg);
+    //handle_error(result);
+    //printf("done\r\n");
+    //printf("sent %x\r\n", msg);
 
     printf("Check SX1276 config...");
 
@@ -249,6 +297,11 @@ int main(void) {
         //result = cyhal_spi_send(&mSPI, cmd_send);
 
         //handle_error(result);
+
+        int tick = get_tick();
+        sleep_until_tick(tick+1000);
+        printf("target: %d, actual %d\r\n", tick+1000, get_tick());
+        printf("diff: %d\r\n", tick+1000-get_tick());
 
         printf("loop\r\n");
         /* Give delay between commands */

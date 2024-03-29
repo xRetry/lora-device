@@ -224,10 +224,10 @@ bool rfm95_init(rfm95_handle_t *handle)
 	//CY_ASSERT(handle->spi_handle->Init.DataSize == SPI_DATASIZE_8BIT);
 	//CY_ASSERT(handle->spi_handle->Init.CLKPolarity == SPI_POLARITY_LOW);
 	//CY_ASSERT(handle->spi_handle->Init.CLKPhase == SPI_PHASE_1EDGE);
-	//CY_ASSERT(handle->get_precision_tick != NULL);
-	//CY_ASSERT(handle->random_int != NULL);
-	//CY_ASSERT(handle->precision_sleep_until != NULL);
-	//CY_ASSERT(handle->precision_tick_frequency > 10000);
+	CY_ASSERT(handle->get_precision_tick != NULL);
+	CY_ASSERT(handle->random_int != NULL);
+	CY_ASSERT(handle->precision_sleep_until != NULL);
+	CY_ASSERT(handle->precision_tick_frequency > 10000);
 
 	reset(handle);
 
