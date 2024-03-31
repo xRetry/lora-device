@@ -127,6 +127,9 @@
 
 #define RH_SPI_WRITE_MASK 0x80
 
+cyhal_lptimer_t lptimer;
+cyhal_lptimer_info_t lptimer_info;
+
 void handle_error(uint32_t status) {
     if (status != CY_RSLT_SUCCESS) {
         printf("Error\r\n");
@@ -134,17 +137,21 @@ void handle_error(uint32_t status) {
     }
 }
 
-cyhal_lptimer_t lptimer;
-cyhal_lptimer_info_t lptimer_info;
-
 uint32_t get_tick() {
     return cyhal_lptimer_read(&lptimer);
 }
 
 void sleep_until_tick(unsigned int tick_count) {
-    // TODO(marco): Timings are off quite a lot
-    double sleep_sec = (double) tick_count / (double) lptimer_info.frequency_hz;
-    cyhal_system_delay_us(sleep_sec * 1e6);
+    unsigned int init_val = tick_count - get_tick() - 5;
+    
+    (void)Cy_SysClk_StartClkMeasurementCounters(
+        (cy_en_meas_clks_t) CY_SYSCLK_MEAS_CLK_LFCLK,
+        init_val, 
+        CY_SYSCLK_MEAS_CLK_IMO
+    );
+
+    /* Wait for counter to reach 0 */
+    while (!Cy_SysClk_ClkMeasurementCountersDone()){};
 }
 
 int main(void) {
@@ -207,26 +214,26 @@ int main(void) {
 
     cyhal_lptimer_get_info(&lptimer, &lptimer_info);
     
-    rfm95_handle_t rfm_handle = {
-        .spi_handle = &mSPI,
-        .get_precision_tick = get_tick,
-        .random_int = NULL,
-        .precision_sleep_until = sleep_until_tick,
-        .precision_tick_frequency = lptimer_info.frequency_hz,
-        .nss_pin = CYBSP_SPI_CS,
-        .nss_port = NULL,
-        .nrst_pin = NULL,
-        .nss_port = NULL,
-        .network_session_key = NULL,
-        .application_session_key = NULL,
-        .get_battery_level = NULL,
-        .device_address = NULL,
-        .precision_tick_drift_ns_per_s = NULL,
-        .receive_mode = NULL,
-        .config = NULL, // can be NULL
-        .on_after_interrupts_configured = NULL, // can be NULL
-    };
-    //rfm95_init(&rfm_handle);
+    //rfm95_handle_t rfm_handle = {
+    //    .spi_handle = &mSPI,
+    //    .get_precision_tick = get_tick,
+    //    .random_int = NULL,
+    //    .precision_sleep_until = sleep_until_tick,
+    //    .precision_tick_frequency = lptimer_info.frequency_hz,
+    //    .nss_pin = CYBSP_SPI_CS,
+    //    .nss_port = NULL,
+    //    .nrst_pin = NULL,
+    //    .nss_port = NULL,
+    //    .network_session_key = NULL,
+    //    .application_session_key = NULL,
+    //    .get_battery_level = NULL,
+    //    .device_address = NULL,
+    //    .precision_tick_drift_ns_per_s = NULL,
+    //    .receive_mode = NULL,
+    //    .config = NULL, // can be NULL
+    //    .on_after_interrupts_configured = NULL, // can be NULL
+    //};
+    ////rfm95_init(&rfm_handle);
     
     //uint32_t msg = RH_RF95_REG_01_OP_MODE | RH_SPI_WRITE_MASK;
     //msg ^= RH_RF95_MODE_SLEEP | RH_RF95_LONG_RANGE_MODE << 8;
