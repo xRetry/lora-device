@@ -78,18 +78,27 @@ static bool read_register(rfm95_handle_t *handle, rfm95_register_t reg, uint8_t 
 	//HAL_GPIO_WritePin(handle->nss_port, handle->nss_pin, GPIO_PIN_RESET);
 	cyhal_gpio_write(handle->nss_pin, GPIO_PIN_RESET);
 
-	//uint8_t transmit_buffer = (uint8_t)reg & 0x7fu;
 	uint8_t transmit_buffer = (uint8_t)reg & 0x7fu;
 
-	//if (HAL_SPI_Transmit(handle->spi_handle, &transmit_buffer, 1, RFM95_SPI_TIMEOUT) != HAL_OK) {
-	if (cyhal_spi_send(handle->spi_handle, transmit_buffer) != CY_RSLT_SUCCESS) {
-		return false;
-	}
+    cyhal_spi_transfer(
+        handle->spi_handle, 
+        &transmit_buffer,
+        length,
+        buffer, 
+        length,
+        0xFF
+    );
 
-	//if (HAL_SPI_Receive(handle->spi_handle, buffer, length, RFM95_SPI_TIMEOUT) != HAL_OK) {
-	if (cyhal_spi_recv(handle->spi_handle, (uint32_t*) buffer) != CY_RSLT_SUCCESS) {
-		return false;
-	}
+	//if (HAL_SPI_Transmit(handle->spi_handle, &transmit_buffer, 1, RFM95_SPI_TIMEOUT) != HAL_OK) {
+    
+	//if (cyhal_spi_send(handle->spi_handle, transmit_buffer) != CY_RSLT_SUCCESS) {
+	//	return false;
+	//}
+
+	////if (HAL_SPI_Receive(handle->spi_handle, buffer, length, RFM95_SPI_TIMEOUT) != HAL_OK) {
+	//if (cyhal_spi_recv(handle->spi_handle, (uint32_t*) buffer) != CY_RSLT_SUCCESS) {
+	//	return false;
+	//}
 
 	//HAL_GPIO_WritePin(handle->nss_port, handle->nss_pin, GPIO_PIN_SET);
 	cyhal_gpio_write( handle->nss_pin, GPIO_PIN_SET);
@@ -229,6 +238,7 @@ bool rfm95_init(rfm95_handle_t *handle)
 	CY_ASSERT(handle->precision_sleep_until != NULL);
 	CY_ASSERT(handle->precision_tick_frequency > 10000);
 
+
 	reset(handle);
 
 	// If there is reload function or the reload was unsuccessful or the magic does not match restore default.
@@ -240,7 +250,10 @@ bool rfm95_init(rfm95_handle_t *handle)
 	// Check for correct version.
 	uint8_t version;
 	if (!read_register(handle, RFM95_REGISTER_VERSION, &version, 1)) return false;
+    printf("version: %d\r\n", version);
 	if (version != RFM9x_VER) return false;
+
+    printf("cp\r\n");
 
 	// Module must be placed in sleep mode before switching to lora.
 	if (!write_register(handle, RFM95_REGISTER_OP_MODE, RFM95_REGISTER_OP_MODE_SLEEP)) return false;

@@ -154,6 +154,10 @@ void sleep_until_tick(unsigned int tick_count) {
     while (!Cy_SysClk_ClkMeasurementCountersDone()){};
 }
 
+unsigned char random_int(unsigned char in) {
+    return 136;
+}
+
 int main(void) {
     //cy_retarget_io_init(CYBSP_DEBUG_UART_TX, CYBSP_DEBUG_UART_RX, CY_RETARGET_IO_BAUDRATE);
 
@@ -207,81 +211,58 @@ int main(void) {
     /* Enable interrupts */
     __enable_irq();
 
-    printf("Send SX1276 config...");
-
     result = cyhal_lptimer_init(&lptimer);
     handle_error(result);
 
     cyhal_lptimer_get_info(&lptimer, &lptimer_info);
+
+    printf("Initializing RFM95...\r\n");
     
-    //rfm95_handle_t rfm_handle = {
-    //    .spi_handle = &mSPI,
-    //    .get_precision_tick = get_tick,
-    //    .random_int = NULL,
-    //    .precision_sleep_until = sleep_until_tick,
-    //    .precision_tick_frequency = lptimer_info.frequency_hz,
-    //    .nss_pin = CYBSP_SPI_CS,
-    //    .nss_port = NULL,
-    //    .nrst_pin = NULL,
-    //    .nss_port = NULL,
-    //    .network_session_key = NULL,
-    //    .application_session_key = NULL,
-    //    .get_battery_level = NULL,
-    //    .device_address = NULL,
-    //    .precision_tick_drift_ns_per_s = NULL,
-    //    .receive_mode = NULL,
-    //    .config = NULL, // can be NULL
-    //    .on_after_interrupts_configured = NULL, // can be NULL
-    //};
-    ////rfm95_init(&rfm_handle);
-    
-    //uint32_t msg = RH_RF95_REG_01_OP_MODE | RH_SPI_WRITE_MASK;
-    //msg ^= RH_RF95_MODE_SLEEP | RH_RF95_LONG_RANGE_MODE << 8;
-    //uint32_t msg = 0x8180;
-    //result = cyhal_spi_send(&mSPI, msg);
-    //handle_error(result);
-    //printf("done\r\n");
-    //printf("sent %x\r\n", msg);
+    rfm95_handle_t rfm_handle = {
+        .spi_handle = &mSPI,
+        .get_precision_tick = get_tick,
+        .random_int = random_int, // TODO(marco): Maybe not needed?
+        .precision_sleep_until = sleep_until_tick,
+        .precision_tick_frequency = lptimer_info.frequency_hz,
+        .nss_pin = CYBSP_SPI_CS,
+        .nss_port = NULL,
+        .nrst_pin = NULL,
+        .nss_port = NULL,
+        .device_address = {
+            0x00, 0x00, 0x00, 0x00
+        },
+		.application_session_key = {
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        },
+		.network_session_key = {
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        },
+        .get_battery_level = NULL,
+        .precision_tick_drift_ns_per_s = 0,
+        .receive_mode = RFM95_RECEIVE_MODE_NONE,
+        .config = NULL, // can be NULL
+        .on_after_interrupts_configured = NULL, // can be NULL
+    };
 
-    printf("Check SX1276 config...");
-
-    //uint8_t tx_msg[2];
-    //tx_msg[0] = 0x1;
-    //uint8_t rx_msg[2];
-    //printf("pre %x\r\n", tx_msg[0]);
-    //printf("pre %x\r\n", tx_msg[1]);
-    //result = cyhal_spi_transfer(
-    //    &mSPI, 
-    //    tx_msg,
-    //    2u,
-    //    rx_msg, 
-    //    2u,
-    //    0xFF
-    //);
-    //handle_error(result);
-
-    //printf("recv %x\r\n", rx_msg[0]);
-    //printf("recv %x\r\n", rx_msg[1]);
-
-    uint32_t tx_msg = 0x100; //RH_RF95_REG_01_OP_MODE & ~RH_SPI_WRITE_MASK;
-    uint32_t rx_msg;
-    if (CY_RSLT_SUCCESS == cyhal_spi_send(&mSPI, tx_msg)) {
-        result = cyhal_spi_recv(&mSPI, &tx_msg);
-        handle_error(result);
-
+     // Initialise RFM95 module.
+    if (!rfm95_init(&rfm_handle)) {
+        printf("error\r\n");
+    } else {
+        printf("done\r\n");
     }
 
-    printf("recv %x\r\n", tx_msg);
-    printf("recv %x\r\n", rx_msg);
-
     printf("Initializing SHT31...");
-    sensirion_i2c_init();
-    printf("done\r\n");
+    if (sensirion_i2c_init()) {
+        printf("done\r\n");
+    } else {
+        printf("error\r\n");
+    }
 
     printf("Probing SHT31...\r\n");
-    //while (sht3x_probe(SHT3X_I2C_ADDR_DFLT) != STATUS_OK) {
-    //    printf("SHT31 sensor probing failed\r\n");
-    //}
+    while (sht3x_probe(SHT3X_I2C_ADDR_DFLT) != STATUS_OK) {
+        printf("SHT31 sensor probing failed\r\n");
+        cyhal_system_delay_ms(CMD_TO_CMD_DELAY);
+    }
     printf("SHT31 sensor probing successful\r\n");
 
 
@@ -300,17 +281,26 @@ int main(void) {
             printf("error reading measurement\r\n");
         }
 
+        uint8_t data_packet[] = {
+            0x01, 0x02, 0x03, 0x4
+        };
+
+        if (!rfm95_send_receive_cycle(&rfm_handle, data_packet, sizeof(data_packet))) {
+            printf("RFM95 send failed\r\n");
+        } else {
+            printf("RFM95 send success\r\n");
+        }
+    
         ///* Send the command packet to the slave */
         //result = cyhal_spi_send(&mSPI, cmd_send);
 
         //handle_error(result);
 
-        int tick = get_tick();
-        sleep_until_tick(tick+1000);
-        printf("target: %d, actual %d\r\n", tick+1000, get_tick());
-        printf("diff: %d\r\n", tick+1000-get_tick());
+        //int tick = get_tick();
+        //sleep_until_tick(tick+1000);
+        //printf("target: %d, actual %d\r\n", tick+1000, get_tick());
+        //printf("diff: %d\r\n", tick+1000-get_tick());
 
-        printf("loop\r\n");
         /* Give delay between commands */
         cyhal_system_delay_ms(CMD_TO_CMD_DELAY);
     }

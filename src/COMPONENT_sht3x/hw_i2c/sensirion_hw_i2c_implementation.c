@@ -29,6 +29,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "cy_result.h"
 #include "sensirion_arch_config.h"
 #include "sensirion_common.h"
 #include "sensirion_i2c.h"
@@ -48,7 +49,8 @@
 #define I2C_SLAVE_ADDR          (0x24UL)
 
 /* I2C bus frequency */
-#define I2C_FREQ                (400000UL)
+//#define I2C_FREQ                (400000UL)
+#define I2C_FREQ                (100000UL)
 
 /* Command valid status */
 #define STATUS_CMD_DONE         (0x00UL)
@@ -85,22 +87,23 @@ int16_t sensirion_i2c_select_bus(uint8_t bus_idx) {
  * Initialize all hard- and software components that are needed for the I2C
  * communication.
  */
-void sensirion_i2c_init(void) {
+bool sensirion_i2c_init(void) {
     //printf(">> Configuring I2C Master.....\r\n");
-    cyhal_i2c_cfg_t i2c_cfg;
-    i2c_cfg.is_slave = false;
-    i2c_cfg.address = 0;
-    i2c_cfg.frequencyhal_hz = I2C_FREQ;
+    cyhal_i2c_cfg_t i2c_cfg = {
+        .is_slave = CYHAL_I2C_MODE_MASTER,
+        .address = 0,
+        .frequencyhal_hz = I2C_FREQ,
+    };
 
     /* Init I2C master */
     if (CY_RSLT_SUCCESS != cyhal_i2c_init(&i2c, CYBSP_I2C_SDA, CYBSP_I2C_SCL, NULL)) {
-        printf("i2c init failed\r\n");
-        CY_ASSERT(0);
+        return false;
     }
     if (CY_RSLT_SUCCESS != cyhal_i2c_configure(&i2c, &i2c_cfg)) {
-        printf("i2c config failed\r\n");
-        CY_ASSERT(0);
+        return false;
     }
+
+    return true;
 }
 
 /**
@@ -121,7 +124,6 @@ void sensirion_i2c_release(void) {
  * @returns 0 on success, error code otherwise
  */
 int8_t sensirion_i2c_read(uint8_t address, uint8_t* data, uint16_t count) {
-    printf("reading\r\n");
     if (CY_RSLT_SUCCESS != cyhal_i2c_master_read(
         &i2c, 
         address,
@@ -130,11 +132,10 @@ int8_t sensirion_i2c_read(uint8_t address, uint8_t* data, uint16_t count) {
         0, 
         true
     )) {
-        printf("post ok\r\n");
-        return STATUS_OK;
+        return STATUS_FAIL;
     }
-    printf("post err\r\n");
-    return STATUS_FAIL;
+
+    return STATUS_OK;
 }
 
 /**
@@ -150,18 +151,17 @@ int8_t sensirion_i2c_read(uint8_t address, uint8_t* data, uint16_t count) {
  */
 int8_t sensirion_i2c_write(uint8_t address, const uint8_t* data,
                            uint16_t count) {
-    printf("writing\r\n");
-    if (CY_RSLT_SUCCESS == cyhal_i2c_master_write(
+    if (CY_RSLT_SUCCESS != cyhal_i2c_master_write(
         &i2c, 
         address,
         data, 
-        count, 
+        count,
         0, 
         true
     )) {
-        return STATUS_OK;
+        return STATUS_FAIL;
     }
-    return STATUS_FAIL;
+    return STATUS_OK;
 }
 
 /**
@@ -173,5 +173,5 @@ int8_t sensirion_i2c_write(uint8_t address, const uint8_t* data,
  * @param useconds the sleep time in microseconds
  */
 void sensirion_sleep_usec(uint32_t useconds) {
-    cyhal_system_delay_ms(useconds * 0.001);
+    cyhal_system_delay_us(useconds);
 }
