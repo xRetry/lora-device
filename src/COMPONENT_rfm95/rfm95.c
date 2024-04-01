@@ -80,17 +80,16 @@ static bool read_register(rfm95_handle_t *handle, rfm95_register_t reg, uint8_t 
 
 	uint8_t transmit_buffer = (uint8_t)reg & 0x7fu;
 
-    cyhal_spi_transfer(
+    printf("status: %d\r\n", cyhal_spi_transfer(
         handle->spi_handle, 
         &transmit_buffer,
         length,
         buffer, 
         length,
         0xFF
-    );
+    ));
 
 	//if (HAL_SPI_Transmit(handle->spi_handle, &transmit_buffer, 1, RFM95_SPI_TIMEOUT) != HAL_OK) {
-    
 	//if (cyhal_spi_send(handle->spi_handle, transmit_buffer) != CY_RSLT_SUCCESS) {
 	//	return false;
 	//}
