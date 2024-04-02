@@ -1,10 +1,6 @@
 #include "cycfg_pins.h"
-#include "cyhal.h"
 #include "cybsp.h"
 #include "cy_retarget_io.h"
-#include "cyhal_clock.h"
-#include "cyhal_clock_impl.h"
-#include "cyhal_gpio.h"
 #include "cyhal_hw_types.h"
 #include "cyhal_lptimer.h"
 #include "cyhal_spi.h"
@@ -24,7 +20,7 @@
 cyhal_lptimer_t lptimer;
 cyhal_lptimer_info_t lptimer_info;
 
-void handle_error(uint32_t status) {
+void stop_on_error(uint32_t status) {
     if (status != CY_RSLT_SUCCESS) {
         printf("Error\r\n");
         CY_ASSERT(0);
@@ -53,19 +49,13 @@ unsigned char random_int(unsigned char in) {
 }
 
 int main(void) {
-    //cy_retarget_io_init(CYBSP_DEBUG_UART_TX, CYBSP_DEBUG_UART_RX, CY_RETARGET_IO_BAUDRATE);
-
     cy_rslt_t result;
-    uint32_t cmd_send = CYBSP_LED_STATE_OFF;
     cyhal_spi_t mSPI;
 
     /* Initialize the device and board peripherals */
     result = cybsp_init();
     /* Board init failed. Stop program execution */
-    handle_error(result);
-
-    //result = cyhal_gpio_init(CYBSP_SPI_CS, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG, 1);
-    //handle_error(result);
+    stop_on_error(result);
 
     /* Initialize retarget-io for uart logs */
     result = cy_retarget_io_init(
@@ -73,8 +63,8 @@ int main(void) {
         CYBSP_DEBUG_UART_RX,
         CY_RETARGET_IO_BAUDRATE
     );
-    /* Retarget-io init failed. Stop program execution */
-    handle_error(result);
+    // Retarget-io init failed. Stop program execution
+    stop_on_error(result);
 
     /* \x1b[2J\x1b[;H - ANSI ESC sequence for clear screen */
     printf("\x1b[2J\x1b[;H");
@@ -87,11 +77,11 @@ int main(void) {
         CYBSP_SPI_CLK,
         CYBSP_SPI_CS,
         NULL,
-        BITS_PER_FRAME,
-        CYHAL_SPI_MODE_00_LSB,
+        16,
+        CYHAL_SPI_MODE_00_MSB,
         false
     );
-    handle_error(result);
+    stop_on_error(result);
     printf("done\r\n");
 
     printf("Set SPI frequency...");
@@ -99,14 +89,14 @@ int main(void) {
         &mSPI, 
         SPI_FREQ_HZ
     );
-    handle_error(result);
+    stop_on_error(result);
     printf("done\r\n");
 
-    /* Enable interrupts */
+    // Enable interrupts
     __enable_irq();
 
     result = cyhal_lptimer_init(&lptimer);
-    handle_error(result);
+    stop_on_error(result);
 
     cyhal_lptimer_get_info(&lptimer, &lptimer_info);
 
@@ -122,6 +112,7 @@ int main(void) {
         .nss_port = NULL,
         .nrst_pin = NULL,
         .nss_port = NULL,
+        // TODO(marco): Set correct address and session
         .device_address = {
             0x00, 0x00, 0x00, 0x00
         },
@@ -138,7 +129,6 @@ int main(void) {
         .on_after_interrupts_configured = NULL, // can be NULL
     };
 
-     // Initialise RFM95 module.
     if (!rfm95_init(&rfm_handle)) {
         printf("error\r\n");
     } else {
@@ -184,17 +174,11 @@ int main(void) {
             printf("RFM95 send success\r\n");
         }
     
-        ///* Send the command packet to the slave */
-        //result = cyhal_spi_send(&mSPI, cmd_send);
-
-        //handle_error(result);
-
         //int tick = get_tick();
         //sleep_until_tick(tick+1000);
         //printf("target: %d, actual %d\r\n", tick+1000, get_tick());
         //printf("diff: %d\r\n", tick+1000-get_tick());
 
-        /* Give delay between commands */
         cyhal_system_delay_ms(CMD_TO_CMD_DELAY);
     }
 }

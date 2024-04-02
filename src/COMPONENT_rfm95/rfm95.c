@@ -80,6 +80,7 @@ static bool read_register(rfm95_handle_t *handle, rfm95_register_t reg, uint8_t 
 
 	uint8_t transmit_buffer = (uint8_t)reg & 0x7fu;
 
+#if 1
     printf("status: %d\r\n", cyhal_spi_transfer(
         handle->spi_handle, 
         &transmit_buffer,
@@ -88,16 +89,17 @@ static bool read_register(rfm95_handle_t *handle, rfm95_register_t reg, uint8_t 
         length,
         0xFF
     ));
-
+#else
 	//if (HAL_SPI_Transmit(handle->spi_handle, &transmit_buffer, 1, RFM95_SPI_TIMEOUT) != HAL_OK) {
-	//if (cyhal_spi_send(handle->spi_handle, transmit_buffer) != CY_RSLT_SUCCESS) {
-	//	return false;
-	//}
+	if (cyhal_spi_send(handle->spi_handle, transmit_buffer) != CY_RSLT_SUCCESS) {
+		return false;
+	}
 
-	////if (HAL_SPI_Receive(handle->spi_handle, buffer, length, RFM95_SPI_TIMEOUT) != HAL_OK) {
-	//if (cyhal_spi_recv(handle->spi_handle, (uint32_t*) buffer) != CY_RSLT_SUCCESS) {
-	//	return false;
-	//}
+	//if (HAL_SPI_Receive(handle->spi_handle, buffer, length, RFM95_SPI_TIMEOUT) != HAL_OK) {
+	if (cyhal_spi_recv(handle->spi_handle, (uint32_t*) buffer) != CY_RSLT_SUCCESS) {
+		return false;
+	}
+#endif
 
 	//HAL_GPIO_WritePin(handle->nss_port, handle->nss_pin, GPIO_PIN_SET);
 	cyhal_gpio_write( handle->nss_pin, GPIO_PIN_SET);
