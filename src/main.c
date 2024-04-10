@@ -72,9 +72,13 @@ int main(void) {
     printf("Configuring SPI master...");
     result = cyhal_spi_init(
         &mSPI,
+        //CYBSP_D2, 
         CYBSP_SPI_MOSI,
+        //CYBSP_D7, 
         CYBSP_SPI_MISO,
+        //CYBSP_D5, 
         CYBSP_SPI_CLK,
+        //CYBSP_D6, 
         CYBSP_SPI_CS,
         NULL,
         16,
