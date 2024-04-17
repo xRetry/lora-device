@@ -22,7 +22,7 @@ cyhal_lptimer_info_t lptimer_info;
 
 void stop_on_error(uint32_t status) {
     if (status != CY_RSLT_SUCCESS) {
-        printf("Error\r\n");
+        printf("Error (%d)\r\n", status);
         CY_ASSERT(0);
     }
 }
@@ -76,7 +76,8 @@ int main(void) {
         CYBSP_SPI_MOSI,
         //CYBSP_D7, 
         CYBSP_SPI_MISO,
-        //CYBSP_D5, 
+        //CYBSP_D13, 
+        //P0_4,
         CYBSP_SPI_CLK,
         //CYBSP_D6, 
         CYBSP_SPI_CS,
@@ -115,7 +116,7 @@ int main(void) {
         .nss_pin = CYBSP_SPI_CS,
         .nss_port = NULL,
         .nrst_pin = NULL,
-        .nss_port = NULL,
+        .nrst_port = NULL,
         // TODO(marco): Set correct address and session
         .device_address = {
             0x00, 0x00, 0x00, 0x00
