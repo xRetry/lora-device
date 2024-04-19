@@ -80,7 +80,7 @@ static bool read_register(rfm95_handle_t *handle, rfm95_register_t reg, uint8_t 
 
 	uint8_t transmit_buffer = (uint8_t)reg & 0x7fu;
 
-#if 1
+#if 0
     printf("status: %d\r\n", cyhal_spi_transfer(
         handle->spi_handle, 
         &transmit_buffer,
@@ -89,7 +89,26 @@ static bool read_register(rfm95_handle_t *handle, rfm95_register_t reg, uint8_t 
         length,
         0xFF
     ));
+#elif 1
+    uint32_t msg = transmit_buffer << 8;
+
+    printf("msg %d\n", msg);
+
+    uint32_t resp;
+    
+	//if (HAL_SPI_Transmit(handle->spi_handle, &transmit_buffer, 1, RFM95_SPI_TIMEOUT) != HAL_OK) {
+	if (cyhal_spi_send(handle->spi_handle, msg) != CY_RSLT_SUCCESS) {
+		return false;
+	}
+
+	//if (HAL_SPI_Receive(handle->spi_handle, buffer, length, RFM95_SPI_TIMEOUT) != HAL_OK) {
+	if (cyhal_spi_recv(handle->spi_handle, &resp) != CY_RSLT_SUCCESS) {
+		return false;
+	}
+    printf("resp %d\n", resp);
 #else
+    // TODO(marco): Set CS also when errors occur
+    
 	//if (HAL_SPI_Transmit(handle->spi_handle, &transmit_buffer, 1, RFM95_SPI_TIMEOUT) != HAL_OK) {
 	if (cyhal_spi_send(handle->spi_handle, transmit_buffer) != CY_RSLT_SUCCESS) {
 		return false;
