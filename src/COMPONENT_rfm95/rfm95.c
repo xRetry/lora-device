@@ -73,53 +73,22 @@ typedef struct
 #define RFM95_REGISTER_INVERT_IQ_1_RX                    		0x67
 #define RFM95_REGISTER_INVERT_IQ_2_RX							0x19
 
-#define SPI_READ_MASK			   (0x80)
 
 static bool read_register(rfm95_handle_t *handle, rfm95_register_t reg, uint8_t *buffer, size_t length)
 {
-	//HAL_GPIO_WritePin(handle->nss_port, handle->nss_pin, GPIO_PIN_RESET);
-	//cyhal_gpio_write(handle->nss_pin, GPIO_PIN_RESET);
+	cyhal_gpio_write(handle->nss_pin, GPIO_PIN_RESET);
 
-	uint8_t transmit_buffer = (uint8_t)reg & 0x7fu;
+    uint8_t msg_tx[2] = {reg & 0x7fu,0x00};
+    uint8_t msg_rx[2] = {0, 0};
 
-#if 0
-    printf("status: %d\r\n", cyhal_spi_transfer(
-        handle->spi_handle, 
-        &transmit_buffer,
-        length,
-        buffer, 
-        length,
-        0xFF
-    ));
-#elif 1
-    uint8_t vSPI_CFG_tx[2] = {reg & 0x7fu,0x00};
-    uint8_t vSPI_CFG_rx[1] = {0};
-    uint8_t vSPI_Write_Null = 0;
-
+    // TODO(marco): Remove printf
     printf("length: %d \r\n",length);
-    printf("%d \r\n",vSPI_CFG_tx[0]);
 
-    vSPI_CFG_tx[0] 	= (vSPI_CFG_tx[0] & ~SPI_READ_MASK);
-    cyhal_spi_transfer(handle->spi_handle, vSPI_CFG_tx, sizeof(vSPI_CFG_tx), vSPI_CFG_rx, sizeof(vSPI_CFG_rx), vSPI_Write_Null);
+    cyhal_spi_transfer(handle->spi_handle, msg_tx, sizeof(msg_tx), msg_rx, sizeof(msg_tx), 0);
 
-    printf("%d \r\n",vSPI_CFG_rx[0]);
-    *buffer = vSPI_CFG_rx[0];
-#else
-    // TODO(marco): Set CS also when errors occur
-    
-	//if (HAL_SPI_Transmit(handle->spi_handle, &transmit_buffer, 1, RFM95_SPI_TIMEOUT) != HAL_OK) {
-	if (cyhal_spi_send(handle->spi_handle, transmit_buffer) != CY_RSLT_SUCCESS) {
-		return false;
-	}
+    *buffer = msg_rx[1];
 
-	//if (HAL_SPI_Receive(handle->spi_handle, buffer, length, RFM95_SPI_TIMEOUT) != HAL_OK) {
-	if (cyhal_spi_recv(handle->spi_handle, (uint32_t*) buffer) != CY_RSLT_SUCCESS) {
-		return false;
-	}
-#endif
-
-	//HAL_GPIO_WritePin(handle->nss_port, handle->nss_pin, GPIO_PIN_SET);
-	//cyhal_gpio_write( handle->nss_pin, GPIO_PIN_SET);
+	cyhal_gpio_write( handle->nss_pin, GPIO_PIN_SET);
 
 	return true;
 }
@@ -270,8 +239,6 @@ bool rfm95_init(rfm95_handle_t *handle)
 	if (!read_register(handle, RFM95_REGISTER_VERSION, &version, 1)) return false;
     printf("version: %d\r\n", version);
 	if (version != RFM9x_VER) return false;
-
-    printf("cp\r\n");
 
 	// Module must be placed in sleep mode before switching to lora.
 	if (!write_register(handle, RFM95_REGISTER_OP_MODE, RFM95_REGISTER_OP_MODE_SLEEP)) return false;

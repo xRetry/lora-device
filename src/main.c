@@ -11,13 +11,13 @@
 #include "cy_sysclk.h"
 
 ///* SPI baud rate in Hz */
-//#define SPI_FREQ_HZ 1000000
+#define SPI_FREQ_HZ 1000000
 ///* Delay of 1000ms between commands */
 //#define CMD_TO_CMD_DELAY 1000UL
 ///* SPI transfer bits per frame */
 //#define BITS_PER_FRAME  16
 ///* SPI baud rate in Hz */
-#define SPI_FREQ_HZ                (1000000UL)
+//#define SPI_FREQ_HZ                (1000000UL)
 /* Delay of 1000ms between commands */
 #define CMD_TO_CMD_DELAY           (1000UL)
 /* SPI transfer bits per frame */
