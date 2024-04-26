@@ -1,4 +1,5 @@
 #include "rfm95.h"
+#include "cy_result.h"
 #include "cyhal_system.h"
 #include "lib/ideetron/Encrypt_V31.h"
 
@@ -84,7 +85,9 @@ static bool read_register(rfm95_handle_t *handle, rfm95_register_t reg, uint8_t 
     // TODO(marco): Remove printf
     printf("length: %d \r\n",length);
 
-    cyhal_spi_transfer(handle->spi_handle, msg_tx, sizeof(msg_tx), msg_rx, sizeof(msg_tx), 0);
+    if (cyhal_spi_transfer(handle->spi_handle, msg_tx, sizeof(msg_tx), msg_rx, sizeof(msg_tx), 0) != CY_RSLT_SUCCESS) {
+        return false;
+    }
 
     *buffer = msg_rx[1];
 
@@ -100,12 +103,14 @@ static bool write_register(rfm95_handle_t *handle, rfm95_register_t reg, uint8_t
 	cyhal_gpio_write(handle->nss_pin, GPIO_PIN_RESET);
 
 	//uint8_t transmit_buffer[2] = {((uint8_t)reg | 0x80u), value};
-	uint8_t transmit_buffer[2] = {((uint8_t)reg | 0x80u), value};
+	//uint8_t transmit_buffer[2] = {((uint8_t)reg | 0x80u), value};
 
-	//if (HAL_SPI_Transmit(handle->spi_handle, transmit_buffer, 2, RFM95_SPI_TIMEOUT) != HAL_OK) {
-	if (cyhal_spi_send(handle->spi_handle, *transmit_buffer) != CY_RSLT_SUCCESS) {
+    uint8_t msg_tx[2] = {reg | 0x80u, value};
+    uint8_t msg_rx[2] = {0, 0};
+    if (cyhal_spi_transfer(handle->spi_handle, msg_tx, sizeof(msg_tx), msg_rx, sizeof(msg_tx), 0) != CY_RSLT_SUCCESS) {
 		return false;
-	}
+    }
+	//if (HAL_SPI_Transmit(handle->spi_handle, transmit_buffer, 2, RFM95_SPI_TIMEOUT) != HAL_OK) {
 
 	//HAL_GPIO_WritePin(handle->nss_port, handle->nss_pin, GPIO_PIN_SET);
 	cyhal_gpio_write( handle->nss_pin, GPIO_PIN_SET);
@@ -166,6 +171,7 @@ static bool wait_for_irq(rfm95_handle_t *handle, rfm95_interrupt_t interrupt, ui
 
 	while (handle->interrupt_times[interrupt] == 0) {
 		if (handle->get_precision_tick() >= timeout_tick) {
+            printf("timeout %d - %d\r\n", timeout_tick, handle->interrupt_times[interrupt]);
 			return false;
 		}
 	}
@@ -580,8 +586,12 @@ static bool send_package(rfm95_handle_t *handle, uint8_t *payload_buf, size_t pa
 	// Set modem to tx mode.
 	if (!write_register(handle, RFM95_REGISTER_OP_MODE, RFM95_REGISTER_OP_MODE_LORA_TX)) return false;
 
+    printf("check \r\n");
+
 	// Wait for the transfer complete interrupt.
 	if (!wait_for_irq(handle, RFM95_INTERRUPT_DIO0, RFM95_SEND_TIMEOUT)) return false;
+
+    printf("check 2\r\n");
 
 	// Set real tx time in ticks.
 	*tx_ticks = handle->interrupt_times[RFM95_INTERRUPT_DIO0];

@@ -1,6 +1,7 @@
 #include "cycfg_pins.h"
 #include "cybsp.h"
 #include "cy_retarget_io.h"
+#include "cyhal_gpio.h"
 #include "cyhal_hw_types.h"
 #include "cyhal_lptimer.h"
 #include "cyhal_spi.h"
@@ -25,9 +26,12 @@
 
 #define SPI_READ_MASK			   (0x80)
 
+#define GPIO_INTERRUPT_PRIORITY (7u)
 
 cyhal_lptimer_t lptimer;
 cyhal_lptimer_info_t lptimer_info;
+cyhal_gpio_callback_data_t gpio_btn_callback_data;
+rfm95_handle_t rfm_handle;
 
 
 void stop_on_error(uint32_t status) {
@@ -143,7 +147,21 @@ void spi_test(void) {
         cyhal_system_delay_ms(CMD_TO_CMD_DELAY);
 
     }
+}
 
+static void handle_interrupt_DIO0(void *handler_arg, cyhal_gpio_event_t event) {
+    //CYBSP_D0
+    rfm95_on_interrupt(&rfm_handle, RFM95_INTERRUPT_DIO0);
+}
+
+static void handle_interrupt_DIO1(void *handler_arg, cyhal_gpio_event_t event) {
+    //CYBSP_D1
+    rfm95_on_interrupt(&rfm_handle, RFM95_INTERRUPT_DIO1);
+}
+
+static void handle_interrupt_DIO5(void *handler_arg, cyhal_gpio_event_t event) {
+    //CYBSP_D2
+    rfm95_on_interrupt(&rfm_handle, RFM95_INTERRUPT_DIO5);
 }
 
 int main(void) {
@@ -193,9 +211,6 @@ int main(void) {
     stop_on_error(result);
     printf("done\r\n");
 
-    // Enable interrupts
-    __enable_irq();
-
     result = cyhal_lptimer_init(&lptimer);
     stop_on_error(result);
 
@@ -230,6 +245,33 @@ int main(void) {
         .on_after_interrupts_configured = NULL, // can be NULL
     };
 
+     /* Configure GPIO interrupt */
+    handle_error(cyhal_gpio_init(CYBSP_D2, CYHAL_GPIO_DIR_INPUT, CYHAL_GPIO_DRIVE_STRONG, 0));
+    gpio_btn_callback_data.callback = handle_interrupt_DIO0;
+    cyhal_gpio_register_callback(CYBSP_D2, 
+                                 &gpio_btn_callback_data);
+    cyhal_gpio_enable_event(CYBSP_D2, CYHAL_GPIO_IRQ_RISE, 
+                                 GPIO_INTERRUPT_PRIORITY, true);
+
+     /* Configure GPIO interrupt */
+    handle_error(cyhal_gpio_init(CYBSP_D7, CYHAL_GPIO_DIR_INPUT, CYHAL_GPIO_DRIVE_STRONG, 0));
+    gpio_btn_callback_data.callback = handle_interrupt_DIO1;
+    cyhal_gpio_register_callback(CYBSP_D7, 
+                                 &gpio_btn_callback_data);
+    cyhal_gpio_enable_event(CYBSP_D7, CYHAL_GPIO_IRQ_RISE, 
+                                 GPIO_INTERRUPT_PRIORITY, true);
+
+     /* Configure GPIO interrupt */
+    handle_error(cyhal_gpio_init(CYBSP_D8, CYHAL_GPIO_DIR_INPUT, CYHAL_GPIO_DRIVE_STRONG, 0));
+    gpio_btn_callback_data.callback = handle_interrupt_DIO5;
+    cyhal_gpio_register_callback(CYBSP_D8, 
+                                 &gpio_btn_callback_data);
+    cyhal_gpio_enable_event(CYBSP_D8, CYHAL_GPIO_IRQ_RISE, 
+                               GPIO_INTERRUPT_PRIORITY, true);
+
+    // Enable interrupts
+    __enable_irq();
+
     if (!rfm95_init(&rfm_handle)) {
         printf("error\r\n");
     } else {
@@ -244,10 +286,10 @@ int main(void) {
     }
 
     printf("Probing SHT31...");
-    while (sht3x_probe(SHT3X_I2C_ADDR_DFLT) != STATUS_OK) {
-        printf("error\r\n");
-        cyhal_system_delay_ms(CMD_TO_CMD_DELAY);
-    }
+    //while (sht3x_probe(SHT3X_I2C_ADDR_DFLT) != STATUS_OK) {
+    //    printf("error\r\n");
+    //    cyhal_system_delay_ms(CMD_TO_CMD_DELAY);
+    //}
     printf("done\r\n");
 
     for (;;) {
