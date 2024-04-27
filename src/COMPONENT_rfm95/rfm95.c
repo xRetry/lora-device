@@ -169,9 +169,10 @@ static bool wait_for_irq(rfm95_handle_t *handle, rfm95_interrupt_t interrupt, ui
 {
 	uint32_t timeout_tick = handle->get_precision_tick() + timeout_ms * handle->precision_tick_frequency / 1000;
 
+    printf("timeout %d - %d\r\n", RFM95_INTERRUPT_DIO5, interrupt);
 	while (handle->interrupt_times[interrupt] == 0) {
 		if (handle->get_precision_tick() >= timeout_tick) {
-            printf("timeout %d - %d\r\n", timeout_tick, handle->interrupt_times[interrupt]);
+            //printf("timeout %d - %d\r\n", timeout_tick, handle->interrupt_times[interrupt]);
 			return false;
 		}
 	}
@@ -252,6 +253,8 @@ bool rfm95_init(rfm95_handle_t *handle)
 
 	// Default interrupt configuration, must be done to prevent DIO5 clock interrupts at 1Mhz
 	if (!write_register(handle, RFM95_REGISTER_DIO_MAPPING_1, RFM95_REGISTER_DIO_MAPPING_1_IRQ_FOR_RXDONE)) return false;
+	if (!read_register(handle, 0x41, &version, 1)) return false;
+    printf("DIO: %d\r\n", version);
 
 	if (handle->on_after_interrupts_configured != NULL) {
 		handle->on_after_interrupts_configured();
@@ -815,5 +818,7 @@ bool rfm95_send_receive_cycle(rfm95_handle_t *handle, const uint8_t *send_data, 
 
 void rfm95_on_interrupt(rfm95_handle_t *handle, rfm95_interrupt_t interrupt)
 {
-	handle->interrupt_times[interrupt] = handle->get_precision_tick();
+    printf("on interrupt\r\n");
+    //printf("on interrupt %d\r\n", handle->get_precision_tick());
+	//handle->interrupt_times[interrupt] = handle->get_precision_tick();
 }

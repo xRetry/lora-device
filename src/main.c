@@ -149,18 +149,18 @@ void spi_test(void) {
     }
 }
 
-static void handle_interrupt_DIO0(void *handler_arg, cyhal_gpio_event_t event) {
-    //CYBSP_D0
+void handle_interrupt_DIO0(void *handler_arg, cyhal_gpio_event_t event) {
+    printf("Interrupt DIO0\r\n");
     rfm95_on_interrupt(&rfm_handle, RFM95_INTERRUPT_DIO0);
 }
 
-static void handle_interrupt_DIO1(void *handler_arg, cyhal_gpio_event_t event) {
-    //CYBSP_D1
+void handle_interrupt_DIO1(void *handler_arg, cyhal_gpio_event_t event) {
+    printf("Interrupt DIO1\r\n");
     rfm95_on_interrupt(&rfm_handle, RFM95_INTERRUPT_DIO1);
 }
 
-static void handle_interrupt_DIO5(void *handler_arg, cyhal_gpio_event_t event) {
-    //CYBSP_D2
+void handle_interrupt_DIO5(void *handler_arg, cyhal_gpio_event_t event) {
+    printf("Interrupt DIO5\r\n");
     rfm95_on_interrupt(&rfm_handle, RFM95_INTERRUPT_DIO5);
 }
 
@@ -228,15 +228,14 @@ int main(void) {
         .nss_port = NULL,
         .nrst_pin = NULL,
         .nrst_port = NULL,
-        // TODO(marco): Set correct address and session
         .device_address = {
-            0x00, 0x00, 0x00, 0x00
+            0x26, 0x0B, 0x42, 0x1C
         },
 		.application_session_key = {
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+            0xB2, 0x84, 0x4D, 0x48, 0xC0, 0x49, 0x07, 0xF8, 0x48, 0x9F, 0xE3, 0xFD, 0xCD, 0xB6, 0x96, 0xE3
         },
 		.network_session_key = {
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+            0x66, 0xE8, 0xFA, 0xDF, 0xB5, 0xB6, 0xA0, 0x5A, 0xE3, 0x1F, 0x83, 0xAC, 0x4C, 0x86, 0xD6, 0xD1
         },
         .get_battery_level = NULL,
         .precision_tick_drift_ns_per_s = 0,
@@ -246,7 +245,7 @@ int main(void) {
     };
 
      /* Configure GPIO interrupt */
-    handle_error(cyhal_gpio_init(CYBSP_D2, CYHAL_GPIO_DIR_INPUT, CYHAL_GPIO_DRIVE_STRONG, 0));
+    handle_error(cyhal_gpio_init(CYBSP_D2, CYHAL_GPIO_DIR_INPUT, CYHAL_GPIO_DRIVE_PULLDOWN, 0));
     gpio_btn_callback_data.callback = handle_interrupt_DIO0;
     cyhal_gpio_register_callback(CYBSP_D2, 
                                  &gpio_btn_callback_data);
@@ -254,7 +253,7 @@ int main(void) {
                                  GPIO_INTERRUPT_PRIORITY, true);
 
      /* Configure GPIO interrupt */
-    handle_error(cyhal_gpio_init(CYBSP_D7, CYHAL_GPIO_DIR_INPUT, CYHAL_GPIO_DRIVE_STRONG, 0));
+    handle_error(cyhal_gpio_init(CYBSP_D7, CYHAL_GPIO_DIR_INPUT, CYHAL_GPIO_DRIVE_PULLDOWN, 0));
     gpio_btn_callback_data.callback = handle_interrupt_DIO1;
     cyhal_gpio_register_callback(CYBSP_D7, 
                                  &gpio_btn_callback_data);
@@ -262,7 +261,7 @@ int main(void) {
                                  GPIO_INTERRUPT_PRIORITY, true);
 
      /* Configure GPIO interrupt */
-    handle_error(cyhal_gpio_init(CYBSP_D8, CYHAL_GPIO_DIR_INPUT, CYHAL_GPIO_DRIVE_STRONG, 0));
+    handle_error(cyhal_gpio_init(CYBSP_D8, CYHAL_GPIO_DIR_INPUT, CYHAL_GPIO_DRIVE_PULLDOWN, 0));
     gpio_btn_callback_data.callback = handle_interrupt_DIO5;
     cyhal_gpio_register_callback(CYBSP_D8, 
                                  &gpio_btn_callback_data);
@@ -311,11 +310,11 @@ int main(void) {
             0x01, 0x02, 0x03, 0x4
         };
 
-        if (!rfm95_send_receive_cycle(&rfm_handle, data_packet, sizeof(data_packet))) {
-            printf("RFM95 send failed\r\n");
-        } else {
-            printf("RFM95 send success\r\n");
-        }
+        //if (!rfm95_send_receive_cycle(&rfm_handle, data_packet, sizeof(data_packet))) {
+        //    printf("RFM95 send failed\r\n");
+        //} else {
+        //    printf("RFM95 send success\r\n");
+        //}
     
         //int tick = get_tick();
         //sleep_until_tick(tick+1000);
