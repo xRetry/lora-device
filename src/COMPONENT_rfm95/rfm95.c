@@ -169,10 +169,8 @@ static bool wait_for_irq(rfm95_handle_t *handle, rfm95_interrupt_t interrupt, ui
 {
 	uint32_t timeout_tick = handle->get_precision_tick() + timeout_ms * handle->precision_tick_frequency / 1000;
 
-    printf("timeout %d - %d\r\n", RFM95_INTERRUPT_DIO5, interrupt);
 	while (handle->interrupt_times[interrupt] == 0) {
 		if (handle->get_precision_tick() >= timeout_tick) {
-            //printf("timeout %d - %d\r\n", timeout_tick, handle->interrupt_times[interrupt]);
 			return false;
 		}
 	}

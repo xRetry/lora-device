@@ -244,6 +244,15 @@ int main(void) {
         .on_after_interrupts_configured = NULL, // can be NULL
     };
 
+    // Enable interrupts
+    __enable_irq();
+
+    if (!rfm95_init(&rfm_handle)) {
+        printf("error\r\n");
+    } else {
+        printf("done\r\n");
+    }
+
      /* Configure GPIO interrupt */
     handle_error(cyhal_gpio_init(CYBSP_D2, CYHAL_GPIO_DIR_INPUT, CYHAL_GPIO_DRIVE_PULLDOWN, 0));
     gpio_btn_callback_data.callback = handle_interrupt_DIO0;
@@ -267,15 +276,6 @@ int main(void) {
                                  &gpio_btn_callback_data);
     cyhal_gpio_enable_event(CYBSP_D8, CYHAL_GPIO_IRQ_RISE, 
                                GPIO_INTERRUPT_PRIORITY, true);
-
-    // Enable interrupts
-    __enable_irq();
-
-    if (!rfm95_init(&rfm_handle)) {
-        printf("error\r\n");
-    } else {
-        printf("done\r\n");
-    }
 
     printf("Initializing SHT31...");
     if (sensirion_i2c_init()) {
@@ -310,11 +310,11 @@ int main(void) {
             0x01, 0x02, 0x03, 0x4
         };
 
-        //if (!rfm95_send_receive_cycle(&rfm_handle, data_packet, sizeof(data_packet))) {
-        //    printf("RFM95 send failed\r\n");
-        //} else {
-        //    printf("RFM95 send success\r\n");
-        //}
+        if (!rfm95_send_receive_cycle(&rfm_handle, data_packet, sizeof(data_packet))) {
+            printf("RFM95 send failed\r\n");
+        } else {
+            printf("RFM95 send success\r\n");
+        }
     
         //int tick = get_tick();
         //sleep_until_tick(tick+1000);
