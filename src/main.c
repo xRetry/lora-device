@@ -30,7 +30,9 @@
 
 cyhal_lptimer_t lptimer;
 cyhal_lptimer_info_t lptimer_info;
-cyhal_gpio_callback_data_t gpio_btn_callback_data;
+cyhal_gpio_callback_data_t callback_data_dio0;
+cyhal_gpio_callback_data_t callback_data_dio1;
+cyhal_gpio_callback_data_t callback_data_dio5;
 rfm95_handle_t rfm_handle;
 
 
@@ -66,91 +68,7 @@ unsigned char random_int(unsigned char in) {
     return 136;
 }
 
-void spi_test(void) {
-    cy_rslt_t result;
-    cyhal_spi_t mSPI;
-
-        uint8_t i;
-    uint8_t vSPI_COEFF_tx[1] = {0x10};
-    uint8_t vSPI_COEFF_rx[19];
-    uint8_t vSPI_CFG_tx[2] = {0x08,0x07};
-    uint8_t vSPI_PT_tx[1] = {0};
-    uint8_t vSPI_PT_rx[7];
-    uint8_t vSPI_CFG_rx[1] = {0};
-    uint8_t vSPI_Write_Null = 0;
-    /* Initialize the device and board peripherals */
-    result = cybsp_init();
-    /* Board init failed. Stop program execution */
-    handle_error(result);
-
-    /* Initialize retarget-io for uart logs */
-    result = cy_retarget_io_init(CYBSP_DEBUG_UART_TX, CYBSP_DEBUG_UART_RX,
-                                  CY_RETARGET_IO_BAUDRATE);
-
-    /* Retarget-io init failed. Stop program execution */
-    handle_error(result);
-
-
-    printf("*************** "
-           "HAL: SPI Master "
-           "*************** \r\n\n");
-
-    printf("Configuring SPI master...\r\n");
-    /* Init SPI master */
-    result = cyhal_spi_init(&mSPI,CYBSP_SPI_MOSI,CYBSP_SPI_MISO,CYBSP_SPI_CLK,
-                            CYBSP_SPI_CS,NULL,BITS_PER_FRAME,
-                            CYHAL_SPI_MODE_11_MSB,false);
-
-    vSPI_CFG_tx[0] 	= (vSPI_CFG_tx[0] & ~SPI_READ_MASK);
-    vSPI_PT_tx[0] 	= (vSPI_PT_tx[0] | SPI_READ_MASK);
-    vSPI_COEFF_tx[0] 	= (vSPI_COEFF_tx[0] | SPI_READ_MASK);
-
-    printf("Array Configuration Done...\r\n");
-
-    printf("%d \r\n",vSPI_CFG_tx[0]);
-    printf("%d \r\n",vSPI_CFG_rx[0]);
-
-    /* Set the SPI baud rate */
-	result = cyhal_spi_set_frequency(&mSPI, SPI_FREQ_HZ);
-    printf("Clock Frequency set to: %lu Hz\r\n", SPI_FREQ_HZ);
-    cyhal_system_delay_ms(CMD_TO_CMD_DELAY);
-
-
-    handle_error(result);
-
-    /* Enable interrupts */
-    __enable_irq();
-
-
-    result =  cyhal_spi_transfer(&mSPI, vSPI_CFG_tx, sizeof(vSPI_CFG_tx), vSPI_CFG_rx, sizeof(vSPI_CFG_rx), vSPI_Write_Null);
-	printf("Sensor Configuration Done...\r\n");
-
-	result = cyhal_spi_transfer(&mSPI, vSPI_COEFF_tx, sizeof(vSPI_COEFF_tx), vSPI_COEFF_rx, sizeof(vSPI_COEFF_rx), vSPI_Write_Null);
-	printf("*** READING COEFFICIENTS ***\r\n");
-	for (i=1; i< sizeof(vSPI_COEFF_rx); i++)
-			{
-				printf("Received Byte #%d: %d\r\n", i, vSPI_COEFF_rx[i]);
-			}
-	        handle_error(result);
-    for (;;)
-    {
-    	printf("*** Starting new Iteration ***\r\n");
-		result =  cyhal_spi_transfer(&mSPI, vSPI_PT_tx, sizeof(vSPI_PT_tx), vSPI_PT_rx, sizeof(vSPI_PT_rx), vSPI_Write_Null);
-
-		for (i=1; i< sizeof(vSPI_PT_rx); i++)
-		{
-			printf("Received Byte #%d: %d\r\n", i, vSPI_PT_rx[i]);
-		}
-        handle_error(result);
-
-        /* Give delay between commands */
-        cyhal_system_delay_ms(CMD_TO_CMD_DELAY);
-
-    }
-}
-
 void handle_interrupt_DIO0(void *handler_arg, cyhal_gpio_event_t event) {
-    printf("Interrupt DIO0\r\n");
     rfm95_on_interrupt(&rfm_handle, RFM95_INTERRUPT_DIO0);
 }
 
@@ -165,8 +83,6 @@ void handle_interrupt_DIO5(void *handler_arg, cyhal_gpio_event_t event) {
 }
 
 int main(void) {
-    //spi_test();
-    //return 0;
     cy_rslt_t result;
     cyhal_spi_t mSPI;
 
@@ -218,7 +134,7 @@ int main(void) {
 
     printf("Initializing RFM95...\r\n");
     
-    rfm95_handle_t rfm_handle = {
+    rfm_handle = (rfm95_handle_t) {
         .spi_handle = &mSPI,
         .get_precision_tick = get_tick,
         .random_int = random_int, // TODO(marco): Maybe not needed?
@@ -255,25 +171,22 @@ int main(void) {
 
      /* Configure GPIO interrupt */
     handle_error(cyhal_gpio_init(CYBSP_D2, CYHAL_GPIO_DIR_INPUT, CYHAL_GPIO_DRIVE_PULLDOWN, 0));
-    gpio_btn_callback_data.callback = handle_interrupt_DIO0;
-    cyhal_gpio_register_callback(CYBSP_D2, 
-                                 &gpio_btn_callback_data);
+    callback_data_dio0.callback = handle_interrupt_DIO0;
+    cyhal_gpio_register_callback(CYBSP_D2, &callback_data_dio0);
     cyhal_gpio_enable_event(CYBSP_D2, CYHAL_GPIO_IRQ_RISE, 
                                  GPIO_INTERRUPT_PRIORITY, true);
 
      /* Configure GPIO interrupt */
     handle_error(cyhal_gpio_init(CYBSP_D7, CYHAL_GPIO_DIR_INPUT, CYHAL_GPIO_DRIVE_PULLDOWN, 0));
-    gpio_btn_callback_data.callback = handle_interrupt_DIO1;
-    cyhal_gpio_register_callback(CYBSP_D7, 
-                                 &gpio_btn_callback_data);
+    callback_data_dio1.callback = handle_interrupt_DIO1;
+    cyhal_gpio_register_callback(CYBSP_D7, &callback_data_dio1);
     cyhal_gpio_enable_event(CYBSP_D7, CYHAL_GPIO_IRQ_RISE, 
                                  GPIO_INTERRUPT_PRIORITY, true);
 
      /* Configure GPIO interrupt */
     handle_error(cyhal_gpio_init(CYBSP_D8, CYHAL_GPIO_DIR_INPUT, CYHAL_GPIO_DRIVE_PULLDOWN, 0));
-    gpio_btn_callback_data.callback = handle_interrupt_DIO5;
-    cyhal_gpio_register_callback(CYBSP_D8, 
-                                 &gpio_btn_callback_data);
+    callback_data_dio5.callback = handle_interrupt_DIO5;
+    cyhal_gpio_register_callback(CYBSP_D8, &callback_data_dio5);
     cyhal_gpio_enable_event(CYBSP_D8, CYHAL_GPIO_IRQ_RISE, 
                                GPIO_INTERRUPT_PRIORITY, true);
 

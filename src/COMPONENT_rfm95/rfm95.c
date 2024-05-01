@@ -171,9 +171,12 @@ static bool wait_for_irq(rfm95_handle_t *handle, rfm95_interrupt_t interrupt, ui
 
 	while (handle->interrupt_times[interrupt] == 0) {
 		if (handle->get_precision_tick() >= timeout_tick) {
+            printf("wait timeout\r\n");
 			return false;
 		}
 	}
+
+    printf("wait done\r\n");
 
 	return true;
 }
@@ -587,12 +590,8 @@ static bool send_package(rfm95_handle_t *handle, uint8_t *payload_buf, size_t pa
 	// Set modem to tx mode.
 	if (!write_register(handle, RFM95_REGISTER_OP_MODE, RFM95_REGISTER_OP_MODE_LORA_TX)) return false;
 
-    printf("check \r\n");
-
 	// Wait for the transfer complete interrupt.
 	if (!wait_for_irq(handle, RFM95_INTERRUPT_DIO0, RFM95_SEND_TIMEOUT)) return false;
-
-    printf("check 2\r\n");
 
 	// Set real tx time in ticks.
 	*tx_ticks = handle->interrupt_times[RFM95_INTERRUPT_DIO0];
@@ -816,7 +815,5 @@ bool rfm95_send_receive_cycle(rfm95_handle_t *handle, const uint8_t *send_data, 
 
 void rfm95_on_interrupt(rfm95_handle_t *handle, rfm95_interrupt_t interrupt)
 {
-    printf("on interrupt\r\n");
-    //printf("on interrupt %d\r\n", handle->get_precision_tick());
-	//handle->interrupt_times[interrupt] = handle->get_precision_tick();
+	handle->interrupt_times[interrupt] = handle->get_precision_tick();
 }
