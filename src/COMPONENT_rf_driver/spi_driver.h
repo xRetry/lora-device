@@ -88,7 +88,7 @@ void spiRead(spi_config_t* config, uint8_t address_to_read, uint8_t *read_buffer
 /// @param length number of bytes to read
 /// @param SPI_READ_MASK (optional) mask for the register adress to allow for reading
 /// @return pointer to read data, NULL if error occured
-uint8_t *spiBurstRead(spi_config_t* config, uint8_t address_to_read, uint8_t length, uint8_t SPI_READ_MASK);
+void spiBurstRead(spi_config_t* config, uint8_t address_to_read, uint8_t* buffer, uint8_t length, uint8_t SPI_READ_MASK);
 
 /// @brief Write data of static size with no adress byte infront
 /// @param config SPI config struct

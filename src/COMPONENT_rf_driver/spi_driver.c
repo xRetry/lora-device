@@ -34,8 +34,7 @@ void spiRead(spi_config_t* config, uint8_t address_to_read, uint8_t *read_buffer
     cyhal_gpio_write(config->CS, ((config->cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_HIGH : GPIO_PIN_OUTPUT_LOW));
 }
 
-uint8_t *spiBurstRead(spi_config_t* config, uint8_t address_to_read, uint8_t length, uint8_t SPI_READ_MASK)
-{
+void spiBurstRead(spi_config_t* config, uint8_t address_to_read, uint8_t* buffer, uint8_t length, uint8_t SPI_READ_MASK) {
     cyhal_gpio_write(config->CS, ((config->cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_LOW : GPIO_PIN_OUTPUT_HIGH));
 
     length += 1; //+1 because we need 1 byte for the register address
@@ -45,10 +44,8 @@ uint8_t *spiBurstRead(spi_config_t* config, uint8_t address_to_read, uint8_t len
     for (uint8_t i = 1; i < length; i++) {
         address_helper[i] = 0;
     }
-    wiced_hal_pspi_exchange_data(config.spi_interface, length, address_helper, buffer);
-    wiced_bt_free_buffer(address_helper);
-    wiced_hal_gpio_set_pin_output(config.CS, ((config.cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_HIGH : GPIO_PIN_OUTPUT_LOW));
-    return buffer;
+    cyhal_spi_transfer(&config->spi_interface, address_helper, length, buffer, length, 0);
+    cyhal_gpio_write(config->CS, ((config->cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_HIGH : GPIO_PIN_OUTPUT_LOW));
 }
 
 void spiWrite(spi_config_t* config, uint8_t address_to_write, uint8_t data, uint8_t SPI_WRITE_MASK) {
@@ -59,49 +56,47 @@ void spiWrite(spi_config_t* config, uint8_t address_to_write, uint8_t data, uint
     cyhal_gpio_write(config->CS, ((config->cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_HIGH : GPIO_PIN_OUTPUT_LOW));
 }
 
-void spiBurstWrite(spi_config_t* config, uint8_t address_to_write, uint8_t *data, uint8_t length, uint8_t SPI_WRITE_MASK)
-{
-  wiced_hal_gpio_set_pin_output(config.CS, ((config.cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_LOW : GPIO_PIN_OUTPUT_HIGH));
-  length += 1; //+1 because we need 1 byte for the register address
-  uint8_t *buffer = allocateBufferUint8(length);
-  if (buffer == NULL)
-  {
-    WICED_BT_TRACE("SPI Writing is not possible due to Allocation problems!\n\r");
-    return;
-  }
-  buffer[0] = address_to_write | SPI_WRITE_MASK;
-  for (uint8_t i = 1; i < length; i++)
-    buffer[i] = data[i - 1];
-  wiced_hal_pspi_tx_data(config.spi_interface, length, buffer);
-  wiced_bt_free_buffer(buffer);
-  wiced_hal_gpio_set_pin_output(config.CS, ((config.cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_HIGH : GPIO_PIN_OUTPUT_LOW));
-}
+void spiBurstWrite(spi_config_t* config, uint8_t address_to_write, uint8_t *data, uint8_t length, uint8_t SPI_WRITE_MASK) {
+    cyhal_gpio_write(config->CS, ((config->cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_LOW : GPIO_PIN_OUTPUT_HIGH));
 
-void spiWriteNoAdressByte(spi_config_t* config, uint8_t *data, uint16_t length)
-{
-  wiced_hal_gpio_set_pin_output(config.CS, ((config.cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_LOW : GPIO_PIN_OUTPUT_HIGH));
-  wiced_hal_pspi_tx_data(config.spi_interface, length, data);
-  wiced_hal_gpio_set_pin_output(config.CS, ((config.cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_HIGH : GPIO_PIN_OUTPUT_LOW));
-}
-
-void spiReadWriteNoAdressByte(spi_config_t* config, uint8_t *data_in, uint8_t *data_out, uint16_t length)
-{
-  wiced_hal_gpio_set_pin_output(config.CS, ((config.cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_LOW : GPIO_PIN_OUTPUT_HIGH));
-  wiced_hal_pspi_exchange_data(config.spi_interface, (UINT32)length, data_in, data_out);
-  wiced_hal_gpio_set_pin_output(config.CS, ((config.cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_HIGH : GPIO_PIN_OUTPUT_LOW));
-}
-
-void printArrayHexa(uint8_t arr[], uint16_t size)
-{
-  uint16_t i;
-  WICED_BT_TRACE("Sending %u bytes: [", size);
-  for (i = 0; i < size; i++)
-  {
-    WICED_BT_TRACE("0x%x", arr[i]);
-    if (i < size - 1)
-    {
-      WICED_BT_TRACE(", ");
+    length += 1; //+1 because we need 1 byte for the register address
+    uint8_t rx_buf[length];
+    uint8_t buffer[length];
+    buffer[0] = address_to_write | SPI_WRITE_MASK;
+    for (uint8_t i = 1; i < length; i++) {
+        buffer[i] = data[i - 1];
     }
-  }
-  WICED_BT_TRACE("]\r\n");
+
+    cyhal_spi_transfer(&config->spi_interface, buffer, length, rx_buf, length, 0);
+
+    cyhal_gpio_write(config->CS, ((config->cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_HIGH : GPIO_PIN_OUTPUT_LOW));
+}
+
+void spiWriteNoAdressByte(spi_config_t* config, uint8_t *data, uint16_t length) {
+    cyhal_gpio_write(config->CS, ((config->cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_LOW : GPIO_PIN_OUTPUT_HIGH));
+
+    uint8_t rx_buf[length];
+    cyhal_spi_transfer(&config->spi_interface, data, length, rx_buf, length, 0);
+
+    cyhal_gpio_write(config->CS, ((config->cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_HIGH : GPIO_PIN_OUTPUT_LOW));
+}
+
+void spiReadWriteNoAdressByte(spi_config_t* config, uint8_t *data_in, uint8_t *data_out, uint16_t length) {
+    cyhal_gpio_write(config->CS, ((config->cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_LOW : GPIO_PIN_OUTPUT_HIGH));
+
+    cyhal_spi_transfer(&config->spi_interface, data_in, length, data_out, length, 0);
+
+    cyhal_gpio_write(config->CS, ((config->cs_polarity == SPI_SS_ACTIVE_HIGH) ? GPIO_PIN_OUTPUT_HIGH : GPIO_PIN_OUTPUT_LOW));
+}
+
+void printArrayHexa(uint8_t arr[], uint16_t size) {
+    uint16_t i;
+    printf("Sending %u bytes: [", size);
+    for (i = 0; i < size; i++) {
+        printf("0x%x", arr[i]);
+        if (i < size - 1) {
+            printf(", ");
+        }
+    }
+    printf("]\r\n");
 }

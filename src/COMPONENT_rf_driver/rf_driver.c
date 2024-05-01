@@ -1,10 +1,13 @@
-
 #include "rf_driver.h"
 #include "cyhal_system.h"
+#include "cyhal_trng.h"
+#include "cycfg_pins.h"
+#include "cy_retarget_io.h"
+
+#define GPIO_INTERRUPT_PRIORITY (7u)
 
 /*****************************    Global variables definition   *****************************/
 volatile RF_BoardMode _mode;
-wiced_mutex_t *mutex;
 
 uint8_t _thisAddress;
 bool _promiscuous;
@@ -36,8 +39,8 @@ volatile bool _cad;
 volatile bool _rxBufValid;
 bool _usingHFport;
 uint64_t _cad_timeout;
-
-wiced_bt_buffer_pool_t *private_pool;
+cyhal_trng_t trng_obj;
+cyhal_gpio_callback_data_t callback_data;
 
 volatile bool check = 0;
 
@@ -90,6 +93,8 @@ bool initRFBoard() {
         printf("Interrupt Setup failed!\n\r");
     }
 
+    cyhal_trng_init(&trng_obj);
+
     printf("Initialized successfully!\n\r");
 
     //mutex = wiced_rtos_create_mutex();
@@ -119,7 +124,7 @@ void rfISR(void *userdata, uint8_t val) {
         spiWrite(&rf_spi_config, RH_RF95_REG_0D_FIFO_ADDR_PTR, current_fifo_address, RH_SPI_WRITE_MASK);
 
         uint8_t tempBuff[len];
-        spiBurstRead(&rf_spi_config, RH_RF95_REG_00_FIFO, len, RH_SPI_WRITE_MASK);
+        spiBurstRead(&rf_spi_config, RH_RF95_REG_00_FIFO, tempBuff, len, RH_SPI_WRITE_MASK);
         for (uint8_t i = 0; i < len; i++) {
             _buf[i] = tempBuff[i + 1];
         }
@@ -239,10 +244,13 @@ bool waitCAD() {
 
     uint16_t passed_milliseconds = 0;
     while (isChannelActive()) {
+        // TODO(marco): What is going on here? `passed_milliseconds` stays 0?
         if (passed_milliseconds > _cad_timeout) {
             return false;
         }
-        wiced_rtos_delay_milliseconds((uint16_t)wiced_hal_rand_gen_num(), KEEP_THREAD_ACTIVE); // Sophisticated DCF function/ Algorithm
+        
+        uint32_t rand_num = cyhal_trng_generate(&trng_obj);
+        cyhal_system_delay_ms(rand_num);
     }
 
     return true;
@@ -397,8 +405,15 @@ void setTxPower(int8_t power, bool useRFO) {
 
 // Here we setup the interrupt functionality of the INT pin
 bool interruptSetup() {
-    wiced_hal_gpio_init();
-    wiced_hal_gpio_configure_pin(rf_interrupt_pin, (GPIO_INPUT_ENABLE | GPIO_PULL_DOWN | GPIO_EN_INT_LEVEL_HIGH), GPIO_PIN_OUTPUT_LOW);
-    wiced_hal_gpio_register_pin_for_interrupt(rf_interrupt_pin, rfISR, NULL);
+    // TODO(marco): Maybe 1 as init value
+    cyhal_gpio_init(rf_interrupt_pin, CYHAL_GPIO_DIR_INPUT, CYHAL_GPIO_DRIVE_PULLDOWN, 0);
+    callback_data.callback = rfISR;
+    cyhal_gpio_register_callback(CYBSP_D2, &callback_data);
+    cyhal_gpio_enable_event(CYBSP_D2, CYHAL_GPIO_IRQ_RISE, 
+                                 GPIO_INTERRUPT_PRIORITY, true);
+
+    //wiced_hal_gpio_init();
+    //wiced_hal_gpio_configure_pin(rf_interrupt_pin, (GPIO_INPUT_ENABLE | GPIO_PULL_DOWN | GPIO_EN_INT_LEVEL_HIGH), GPIO_PIN_OUTPUT_LOW);
+    //wiced_hal_gpio_register_pin_for_interrupt(rf_interrupt_pin, rfISR, NULL);
     return true;
 }

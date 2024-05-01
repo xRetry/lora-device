@@ -178,43 +178,40 @@ static const ModemConfig MODEM_CONFIG_TABLE[] =
 /*                                                                    */
 /**********************************************************************/
 extern volatile RF_BoardMode _mode;
-extern wiced_mutex_t *mutex;
 
-extern UINT8 _thisAddress;
+extern uint8_t _thisAddress;
 extern bool _promiscuous;
 
-extern volatile UINT8 _rxHeaderTo;
-extern volatile UINT8 _rxHeaderFrom;
-extern volatile UINT8 _rxHeaderId;
-extern volatile UINT8 _rxHeaderFlags;
+extern volatile uint8_t _rxHeaderTo;
+extern volatile uint8_t _rxHeaderFrom;
+extern volatile uint8_t _rxHeaderId;
+extern volatile uint8_t _rxHeaderFlags;
 
-extern volatile UINT8 _txHeaderTo;
-extern volatile UINT8 _txHeaderFrom;
-extern volatile UINT8 _txHeaderId;
-extern volatile UINT8 _txHeaderFlags;
+extern volatile uint8_t _txHeaderTo;
+extern volatile uint8_t _txHeaderFrom;
+extern volatile uint8_t _txHeaderId;
+extern volatile uint8_t _txHeaderFlags;
 
-extern volatile UINT8 _lastRssi;
+extern volatile uint8_t _lastRssi;
 extern int8_t _lastSNR;
 extern bool _enableCRC;
 
-extern volatile UINT16 _rxBad;
-extern volatile UINT16 _rxGood;
+extern volatile uint16_t _rxBad;
+extern volatile uint16_t _rxGood;
 
-extern volatile UINT16 _txBad;
-extern volatile UINT16 _txGood;
+extern volatile uint16_t _txBad;
+extern volatile uint16_t _txGood;
 
-extern volatile UINT8 _buf[RH_RF95_MAX_PAYLOAD_LEN];
-extern volatile UINT8 _bufLen;
+extern volatile uint8_t _buf[RH_RF95_MAX_PAYLOAD_LEN];
+extern volatile uint8_t _bufLen;
 
 extern volatile bool _cad;
 extern volatile bool _rxBufValid;
 extern bool _usingHFport;
-extern UINT64 _cad_timeout;
+extern uint64_t _cad_timeout;
 
-extern wiced_bt_buffer_pool_t *private_pool;
-
-extern wiced_bt_gpio_numbers_t rf_reset_pin;		 // set in main.c
-extern wiced_bt_gpio_numbers_t rf_interrupt_pin; // set in main.c
+extern cyhal_gpio_t rf_reset_pin;		 // set in main.c
+extern cyhal_gpio_t rf_interrupt_pin; // set in main.c
 extern float rf_center_frequency;								 // set in main.c
 extern spi_config_t rf_spi_config;							 // set in main.c
 
@@ -232,13 +229,13 @@ bool initRFBoard();
 /// @param data pointer to the message to send
 /// @param length size in bytes to send
 /// @return true if message has been copied successfully; false if Channel is not clear
-bool sendRF(UINT8 *data, UINT8 length);
+bool sendRF(uint8_t *data, uint8_t length);
 
 /// @brief Check if a valid message is present in _buf; discards the header bytes
 /// @param buff Location to copy the received message to
 /// @param length Pointer to available space in buff; is set to actual number of bytes received
 /// @return true, if a valid message was copied to buff
-bool receiveRF(UINT8 *buff, UINT8 *length);
+bool receiveRF(uint8_t *buff, uint8_t *length);
 
 /// @brief In promiscuous mode all messages are accepted, regardless of the header
 /// @param value true or false
@@ -246,19 +243,19 @@ void setPromiscuous(bool value);
 
 /// @brief Set Address of this node
 /// @param value
-void setThisAddress(UINT8 value);
+void setThisAddress(uint8_t value);
 
 /// @brief Sets the TO header to be sent in all subsequent messages
 /// @param value
-void setHeaderTo(UINT8 value);
+void setHeaderTo(uint8_t value);
 
 /// @brief Sets the FROM header to be sent in all subsequent messages
 /// @param value
-void setHeaderFrom(UINT8 value);
+void setHeaderFrom(uint8_t value);
 
 /// @brief Sets the ID header to be sent in all subsequent messages
 /// @param value
-void setHeaderId(UINT8 value);
+void setHeaderId(uint8_t value);
 
 /// @brief Sets and clears bits in the FLAGS header to be sent in all subsequent messages
 /// First it clears the FLAGS  according to the clear argument, then sets the FLAGS according to the
@@ -267,7 +264,7 @@ void setHeaderId(UINT8 value);
 /// @param clear Bitmask of the FLAGS to clear. Defaults to RH_FLAGS_APPLICATION_SPECIFIC
 ///            which clears the application specific flags, resulting in new application specific flags
 ///            identical to the set.
-void setHeaderFlags(UINT8 set, UINT8 clear);
+void setHeaderFlags(uint8_t set, uint8_t clear);
 
 /**********************************************************************/
 /*                                                                    */
@@ -345,6 +342,6 @@ bool interruptSetup();
 /// The paramters are unused and are only present because the WICED library needs this paramters
 /// @param userdata set NULL
 /// @param val not used
-void rfISR(void *userdata, UINT8 val);
+void rfISR(void *userdata, uint8_t val);
 
 #endif // RF_DRIVER_H_
