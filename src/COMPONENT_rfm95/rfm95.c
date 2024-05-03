@@ -82,9 +82,6 @@ static bool read_register(rfm95_handle_t *handle, rfm95_register_t reg, uint8_t 
     uint8_t msg_tx[2] = {reg & 0x7fu,0x00};
     uint8_t msg_rx[2] = {0, 0};
 
-    // TODO(marco): Remove printf
-    printf("length: %d \r\n",length);
-
     if (cyhal_spi_transfer(handle->spi_handle, msg_tx, sizeof(msg_tx), msg_rx, sizeof(msg_tx), 0) != CY_RSLT_SUCCESS) {
         return false;
     }
@@ -171,12 +168,9 @@ static bool wait_for_irq(rfm95_handle_t *handle, rfm95_interrupt_t interrupt, ui
 
 	while (handle->interrupt_times[interrupt] == 0) {
 		if (handle->get_precision_tick() >= timeout_tick) {
-            printf("wait timeout\r\n");
 			return false;
 		}
 	}
-
-    printf("wait done\r\n");
 
 	return true;
 }
@@ -223,11 +217,6 @@ bool rfm95_set_power(rfm95_handle_t *handle, int8_t power)
 
 bool rfm95_init(rfm95_handle_t *handle)
 {
-	//CY_ASSERT(handle->spi_handle->Init.Mode == SPI_MODE_MASTER);
-	//CY_ASSERT(handle->spi_handle->Init.Direction == SPI_DIRECTION_2LINES);
-	//CY_ASSERT(handle->spi_handle->Init.DataSize == SPI_DATASIZE_8BIT);
-	//CY_ASSERT(handle->spi_handle->Init.CLKPolarity == SPI_POLARITY_LOW);
-	//CY_ASSERT(handle->spi_handle->Init.CLKPhase == SPI_PHASE_1EDGE);
 	CY_ASSERT(handle->get_precision_tick != NULL);
 	CY_ASSERT(handle->random_int != NULL);
 	CY_ASSERT(handle->precision_sleep_until != NULL);
@@ -245,7 +234,6 @@ bool rfm95_init(rfm95_handle_t *handle)
 	// Check for correct version.
 	uint8_t version;
 	if (!read_register(handle, RFM95_REGISTER_VERSION, &version, 1)) return false;
-    printf("version: %d\r\n", version);
 	if (version != RFM9x_VER) return false;
 
 	// Module must be placed in sleep mode before switching to lora.
@@ -255,7 +243,6 @@ bool rfm95_init(rfm95_handle_t *handle)
 	// Default interrupt configuration, must be done to prevent DIO5 clock interrupts at 1Mhz
 	if (!write_register(handle, RFM95_REGISTER_DIO_MAPPING_1, RFM95_REGISTER_DIO_MAPPING_1_IRQ_FOR_RXDONE)) return false;
 	if (!read_register(handle, 0x41, &version, 1)) return false;
-    printf("DIO: %d\r\n", version);
 
 	if (handle->on_after_interrupts_configured != NULL) {
 		handle->on_after_interrupts_configured();

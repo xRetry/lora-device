@@ -85,7 +85,7 @@ VERBOSE=
 # ... then code in directories named COMPONENT_foo and COMPONENT_bar will be
 # added to the build
 #
-COMPONENTS=sht3x rfm95 rf_driver
+COMPONENTS=sht3x rfm95 #rf_driver
 
 # Like COMPONENTS, but disable optional code that was enabled by default.
 DISABLE_COMPONENTS=
