@@ -9,6 +9,7 @@
 #define RFM9x_VER 0x12
 #define GPIO_PIN_SET 1
 #define GPIO_PIN_RESET 0
+#define USE_ENCRYPTION 0
 
 /**
  * Registers addresses.
@@ -613,13 +614,15 @@ static size_t encode_phy_payload(rfm95_handle_t *handle, uint8_t payload_buf[64]
 
 	// Encrypt payload in place in payload_buf.
 	memcpy(payload_buf + payload_len, frame_payload, frame_payload_length);
-	if (port == 0) {
+#if (USE_ENCRYPTION)
+    if (port == 0) {
 		Encrypt_Payload(payload_buf + payload_len, frame_payload_length, handle->config.tx_frame_count,
 		                0, handle->network_session_key, handle->device_address);
 	} else {
 		Encrypt_Payload(payload_buf + payload_len, frame_payload_length, handle->config.tx_frame_count,
 		                0, handle->application_session_key, handle->device_address);
 	}
+#endif
 	payload_len += frame_payload_length;
 
 	// Calculate MIC and copy to last 4 bytes of the payload_buf.
@@ -759,9 +762,11 @@ bool rfm95_send_receive_cycle(rfm95_handle_t *handle, const uint8_t *send_data, 
 			uint8_t frame_payload_len = 0;
 			uint8_t frame_port;
 
+#if (USE_ENCRYPTION)
 			// Try decoding the frame payload.
 			if (decode_phy_payload(handle, phy_payload_buf, phy_payload_len, &frame_payload, &frame_payload_len,
 			                       &frame_port)) {
+#endif
 
 				// Process Mac Commands
 				if (frame_port == 0) {
@@ -789,7 +794,9 @@ bool rfm95_send_receive_cycle(rfm95_handle_t *handle, const uint8_t *send_data, 
 				} else {
 					// Don't process application messages for now!
 				}
+#if (USE_ENCRYPTION)
 			}
+#endif
 		}
 	}
 

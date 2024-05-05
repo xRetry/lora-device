@@ -6,7 +6,7 @@
 #include "sht3x.h"
 #include "rfm95.h"
 #include "cy_sysclk.h"
-#include "cyhal_trng.h"
+#include <stdlib.h>
 
 /* SPI baud rate in Hz */
 #define SPI_FREQ_HZ                 (1000000)
@@ -52,7 +52,7 @@ void sleep_until_tick(unsigned int tick_count) {
 unsigned char random_int(unsigned char in) {
     //uint32_t rand_num = cyhal_trng_generate(&trng_obj);
     //return rand_num;
-    return 134;
+    return rand() % 100;
 }
 
 void handle_interrupt_DIO0(void *handler_arg, cyhal_gpio_event_t event) {
@@ -110,7 +110,7 @@ int main(void) {
     
     // Random number generator needed for random channel switches
     // TODO(marco): Enable
-    //cyhal_trng_init(&trng_obj);
+    //stop_on_error(cyhal_trng_init(&trng_obj));
 
     __enable_irq();
 
@@ -198,11 +198,15 @@ int main(void) {
         );
 
         // Big endian
-        uint8_t data_packet[4] = { 0 };
-        data_packet[0] = temperature >> 24;
-        data_packet[1] = temperature >> 16;
-        data_packet[2] = temperature >> 8;
-        data_packet[3] = temperature;
+        //uint8_t data_packet[4] = { 0 };
+        //data_packet[0] = temperature >> 24;
+        //data_packet[1] = temperature >> 16;
+        //data_packet[2] = temperature >> 8;
+        //data_packet[3] = temperature;
+
+        uint8_t data_packet[] = {
+            0x01, 0x02, 0x03, 0x04
+        };
 
         if (!rfm95_send_receive_cycle(&rfm_handle, data_packet, sizeof(data_packet))) {
             printf("RFM95 send failed\r\n");
