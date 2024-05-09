@@ -50,9 +50,7 @@ void sleep_until_tick(unsigned int tick_count) {
 }
 
 unsigned char random_int(unsigned char in) {
-    //uint32_t rand_num = cyhal_trng_generate(&trng_obj);
-    //return rand_num;
-    return rand() % 100;
+    return rand() % 16;
 }
 
 void handle_interrupt_DIO0(void *handler_arg, cyhal_gpio_event_t event) {
@@ -108,10 +106,6 @@ int main(void) {
     stop_on_error(cyhal_lptimer_init(&lptimer));
     cyhal_lptimer_get_info(&lptimer, &lptimer_info);
     
-    // Random number generator needed for random channel switches
-    // TODO(marco): Enable
-    //stop_on_error(cyhal_trng_init(&trng_obj));
-
     __enable_irq();
 
     /* LoraWAN module */

@@ -9,7 +9,7 @@
 #define RFM9x_VER 0x12
 #define GPIO_PIN_SET 1
 #define GPIO_PIN_RESET 0
-#define USE_ENCRYPTION 0
+#define USE_ENCRYPTION 1
 
 /**
  * Registers addresses.
