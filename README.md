@@ -49,5 +49,18 @@ passwd
 13. Generate Device address
 14. Generate AppSKey (application session key)
 15. Generate NwkSKey (network session key)
-16. `Register end device`
+16. Click `Advanced MAC settings` _ check `Reset frame counters`
+17. `Register end device`
+
+The following payload formatter converts the bytes of the message to decimal values:
+
+```javascript
+function Decoder(bytes, port) {
+    const toSigned = (x) => (x > 0x7FFF) ? x - 0x10000 : x;
+    return {
+        temperature: toSigned((bytes[0] << 8) + bytes[1]) / 1000,
+        humidity: ((bytes[2] << 8) + bytes[3]) / 1000
+    };
+}
+```
 

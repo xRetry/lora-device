@@ -101,7 +101,6 @@ static bool write_register(rfm95_handle_t *handle, rfm95_register_t reg, uint8_t
 	cyhal_gpio_write(handle->nss_pin, GPIO_PIN_RESET);
 
 	//uint8_t transmit_buffer[2] = {((uint8_t)reg | 0x80u), value};
-	//uint8_t transmit_buffer[2] = {((uint8_t)reg | 0x80u), value};
 
     uint8_t msg_tx[2] = {reg | 0x80u, value};
     uint8_t msg_rx[2] = {0, 0};

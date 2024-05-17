@@ -8,22 +8,24 @@
 #include "cy_sysclk.h"
 #include <stdlib.h>
 
-/* SPI baud rate in Hz */
+// SPI frequency in Hz
 #define SPI_FREQ_HZ                 (1000000)
-
-#define CMD_TO_CMD_DELAY            (1000UL)
-/* SPI transfer bits per frame */
+// Send rate in ms
+#define CMD_TO_CMD_DELAY            (5000UL)
+// SPI transfer bits per frame
 #define BITS_PER_FRAME              (8)
-
-#define SPI_READ_MASK			    (0x80)
-
+// The priority for LoraWAN interrupts
 #define GPIO_INTERRUPT_PRIORITY     (7u)
 
+// System clock for the LoraWAN module
 cyhal_lptimer_t lptimer;
 cyhal_lptimer_info_t lptimer_info;
+// The handle to the LoraWAN object
 rfm95_handle_t rfm_handle;
-cyhal_trng_t trng_obj;
 
+/**
+ * Stops the program if `status` is not `CY_RSLT_SUCCESS`.
+ */
 void stop_on_error(int status) {
     if (status != CY_RSLT_SUCCESS) {
         printf("Error (%d)\r\n", status);
@@ -32,10 +34,18 @@ void stop_on_error(int status) {
     }
 }
 
+/**
+ * Helper function for the LoraWAN library.
+ * Returns the current tick count of the clock.
+ */
 uint32_t get_tick() {
     return cyhal_lptimer_read(&lptimer);
 }
 
+/**
+ * Helper function for the LoraWAN library.
+ * Sleeps until the specified tick couht is reached by the clock.
+ */
 void sleep_until_tick(unsigned int tick_count) {
     unsigned int init_val = tick_count - get_tick() - 5;
     
@@ -49,9 +59,15 @@ void sleep_until_tick(unsigned int tick_count) {
     while (!Cy_SysClk_ClkMeasurementCountersDone()){};
 }
 
+/**
+ * Helper function for the LoraWAN library.
+ * Is used to select a random channel.
+ */
 unsigned char random_int(unsigned char in) {
     return rand() % 16;
 }
+
+/* Interrupt callback functions */
 
 void handle_interrupt_DIO0(void *handler_arg, cyhal_gpio_event_t event) {
     rfm95_on_interrupt(&rfm_handle, RFM95_INTERRUPT_DIO0);
@@ -64,6 +80,8 @@ void handle_interrupt_DIO1(void *handler_arg, cyhal_gpio_event_t event) {
 void handle_interrupt_DIO5(void *handler_arg, cyhal_gpio_event_t event) {
     rfm95_on_interrupt(&rfm_handle, RFM95_INTERRUPT_DIO5);
 }
+
+/* Entrypoint */
 
 int main(void) {
     cyhal_spi_t mSPI;
@@ -89,7 +107,7 @@ int main(void) {
         CYBSP_SPI_CLK,
         CYBSP_SPI_CS,
         NULL,
-        8,
+        BITS_PER_FRAME,
         CYHAL_SPI_MODE_00_MSB,
         false
     ));
@@ -171,18 +189,23 @@ int main(void) {
         printf("error\r\n");
     }
 
+    /* Event loop */
+
     for (;;) {
         cyhal_system_delay_ms(CMD_TO_CMD_DELAY);
 
-        int32_t temperature, humidity;
+        int32_t temperature_full, humidity;
         if (STATUS_OK != sht3x_measure_blocking_read(
             SHT3X_I2C_ADDR_DFLT,
-            &temperature, 
+            &temperature_full, 
             &humidity
         )) {
             printf("error reading measurements\r\n");
             continue;
         }
+
+        // Downcast to keep sign
+        int16_t temperature = temperature_full;
 
         printf(
             "temperature: %0.2f degreeCelsius, "
@@ -191,16 +214,11 @@ int main(void) {
             humidity / 1000.0f
         );
 
-        // Big endian
-        //uint8_t data_packet[4] = { 0 };
-        //data_packet[0] = temperature >> 24;
-        //data_packet[1] = temperature >> 16;
-        //data_packet[2] = temperature >> 8;
-        //data_packet[3] = temperature;
-
-        uint8_t data_packet[] = {
-            0x01, 0x02, 0x03, 0x04
-        };
+        uint8_t data_packet[4] = { 0 };
+        data_packet[0] = temperature >> 8;
+        data_packet[1] = temperature;
+        data_packet[2] = humidity >> 8;
+        data_packet[3] = humidity;
 
         if (!rfm95_send_receive_cycle(&rfm_handle, data_packet, sizeof(data_packet))) {
             printf("RFM95 send failed\r\n");
