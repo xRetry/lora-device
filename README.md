@@ -1,4 +1,24 @@
-## Building Process
+
+# Early Detection System for Natural Disasters
+This Master Data Science Project is a collaborative effort between the Chair of Automation and Measurement and the Chair of Information Technology. The objective is to implement an end-to-end system utilizing Internet of Things sensors and LoRaWAN communication technology to establish an early warning system for natural disasters. This system should provide timely data on environmental conditions that could indicate potential natural disasters. 
+
+Project Objectives
+The project’s core mission is to deploy IoT sensors that continuously monitor critical environmental parameters, such as temperature and humidity, which are critical for predicting natural disasters. The sensors transmit data via a LoRaWAN gateway across The Things Network to our dedicated server, where it is processed and stored. Node-RED is employed to handle the incoming data streams, ensuring that relevant data is efficiently routed to our InfluxDB database. This data is then visualized using Grafana, enabling real-time monitoring and the capability to predict and respond to disaster scenarios promptly. Additionally, the project implements multi-level user accounts in both InfluxDB and Grafana to manage access rights and enhance system security and to facilitate further use of the system for upcoming projects.
+
+System Architecture and Components
+Our system integrates IoT sensors for data collection and a LoRaWAN gateway that connects to The Things Network, a robust and globally accessible IoT network. This setup guarantees that data collected from remote locations is transmitted reliably, even under challenging conditions. The server, running on Debian and utilizing container technology,   ensures a secure, stable, and scalable platform for managing the data and system operations. Node-RED, a flexible and powerful tool, filters   and processes the data in real-time before it is stored in InfluxDB, a database chosen for its superior handling of time-series data. Grafana, connected to InfluxDB, offers dynamic visualization capabilities and is configured to alert administrators to potential natural disasters based on perceived trends.
+
+This project represents a significant step forward in utilizing advanced IoT and networking technologies for critical public safety applications. By leveraging the strengths of LoRaWAN, Node-RED, InfluxDB, and Grafana, the system will not only provide early warnings for natural disasters but also enhance our understanding of environmental patterns leading to these events.
+
+## Hardware Components - Sensors, Microcontroller
+
+### Allgemeine Erklärung
+Welche Parameter messen wir aktuell? Welche System wird angewandt? Wie schaut das ganze allgemein aus?
+
+### Technische Erklärung
+Wie werden die Daten generiert und weitergeschickt? Welche Sensoren wurden verbaut? Wie funktioniert das?
+
+### Building Process
 
 Make sure, Infineon's [ModusToolbox](https://www.infineon.com/cms/en/design-support/tools/sdk/modustoolbox-software/) is installed on the system.
 
@@ -22,8 +42,24 @@ make program
 
 In case of errors during the flashing process, make sure the power to the LoRaWAN module is disconnected during flashing.
 
-## Debian Setup
+## LoRaWAN Gateway
 
+### Allgemeine Erklärung
+Was ist das? Warum brauchen wir das? Welche Alternativen gäbe es? Wie kommuniziert das dann allgemein mit The Thing Network und dem Microcontroller?
+
+### Technische Erklärung
+Wie haben wir das aufgesetzt? Welche Parameter mussten gesetzt werden? Wie funktioniert das ver- und entschlüsseln? Wie funktioniert technisch die Schnittstelle mit The Thing Network
+
+
+## Debian Server
+
+### Allgemeine Erklärung
+Warum brauchen wir das? Warum haben wir Container verwendet? Was sind Images? Welche Container wurden aufgesetzt? 
+
+### Technische Erklärung
+Welche Befehle benötigt man zum Aufsetzen vom Server? Wie sind die Container/Images konfiguriert? Welche Parameter sind eingestellt? Wie kann man auf den Server zugreifen? Welche Befehle benötige ich?
+
+### Debian Setup
 The Debian installation follows the installer (non-desktop version).
 On the screen for software selection, only `SSH server` and `standard system utilities` are chosen
 
@@ -44,10 +80,17 @@ It is recommended to change the default password of the `config` user with:
 ```sh
 passwd
 ```
+## The Thing Network
 
-## The Things Network Setup
+### Allgemeine Erklärung
+Bitte erklären, warum wir das brauchen und welche Features wir verwenden. Wirklich intuitiv erklären, was das macht. Nicht zu technisch.
 
-### Gateway Registration
+### Technische Erklärung
+Wie wurde der Account aufgesetzt? Welche Parameter wurden gewählt? Wie wurde das Device konfiguriert? Wie bekommt man die Daten? Wie funktioniert das mit LoRaWAN in Kombination?
+
+### The Things Network Setup
+
+#### Gateway Registration
 
 1. `Gateways` → `Register gateway`
 2. Fill out `Gateway EUI` (printed on the gateway next to `(92)`)
@@ -56,7 +99,7 @@ passwd
 5. Select Frequency plan: `Europe 863-870 MHz (SF9 for RX2 - recommended)`
 6. `Claim gateway`
 
-### Application Creation
+#### Application Creation
 
 1. `Applications` → `Create application`
 2. Fill out `Application ID`
@@ -73,7 +116,7 @@ passwd
 13. Generate Device address
 14. Generate AppSKey (application session key)
 15. Generate NwkSKey (network session key)
-16. Click `Advanced MAC settings` → check `Reset frame counters`
+16. Click `Advanced MAC settings` _ check `Reset frame counters`
 17. `Register end device`
 
 The following payload formatter converts the bytes of the message to decimal values:
@@ -87,3 +130,25 @@ function Decoder(bytes, port) {
     };
 }
 ```
+## Node-RED
+To be able to wire together hardware devices, APIs and online services, the programming tool Node-RED is used. It provides an browser-based editor and that makes it easy to wire together flows using the wide range of nodes in the palette that can be deployed to its runtime in a single-click. 
+
+We have configured Node-RED to run on port 1880 on our localhost. Essentially, we require a link between The Things Network and InfluxDB to facilitate data transfer into our database. To achieve this, we employ two primary nodes within Node-RED: one node represents the inflow of data from The Things Network, and another node interfaces with InfluxDB, managing data storage. Additionally, we've incorporated a debug node, which is crucial for monitoring the incoming data and ensuring that the system is receiving data correctly. 
+
+The MQTT server provided by The Things Stack can be integrated with Node-RED. To set up reception of events and messages, we positioned the mqtt in node on the Node-RED dashboard and configured its properties. In the Server dropdown menu, we selected 'Add new mqtt-broker' and clicked the adjacent button to edit it. In the Connection tab, we entered the MQTT server's address (excluding the port) from The Things Stack. The port is specified in the adjacent 'Port' field to determine the type of connection—whether it's insecure or secured with TLS. We opted for a TLS   -secured connection, thus the port was set to 8883  . Under the Security tab, we input the username and API token from our application as specified by The Things Stack. In the Properties section, we set the Topic to '#' to subscribe to all topics and selected a Quality of Service (QoS) of 2, which refers to messages being transmitted exactly once. Having a QoS of 0 would mean that the transmission takes place at most once and a QoS of 2 means that the transmission takes place at least once. After deploying and correctly setting up the system, the 'connected' status will appear below the mqtt in node. If the setup is successful, published event messages should then be visible thorugh the connected debug node.
+After that a change node was added, which adds a timestamp as a global variable to Node-RED. This means that we can access the variable at a later stage again.
+Before the data is transmitted to the InfluxDB, the message received from the The Things Network transmission is plucked apart. The only elements required in the database are the timestamps as well as the relevant measurement data. Of course, the exact data transmission can easily be changed by adapting the responsible function node.
+To finally write data into InfluxDB, we first need to install the InfluxDB Node-RED package, known as node-red-contrib-influxdb. After installation, Node-RED provides nodes that can save and query data from an InfluxDB time series database. Next, we add an influxdb out node to our canvas and configure it by selecting 'Add new influxdb'. We then choose the version of InfluxDB we are using, which in our case is Version 2.0.  
+To connect to our InfluxDB server, we enter the server URL and an access token. We also configure the database details by selecting the organization name, the bucket (which functions as the database name), and the measurement (equivalent to the table   name). 
+The data that is stored using the InfluxDB is a set of timeseries recording the temperature and the humidity. These values are stored indefinitely. 
+Finally, we create the connection from the mqtt in node to the influxdb out node. This setup allows the seamless flow of data from The Things Network, received via MQTT, into our InfluxDB database for storage and further analysis.
+
+## InfluxDB
+InfluxDB is an open-source time series database designed to handle high write and query loads, which is an essential feature in IoT contexts where devices generate vast amounts of time-stamped data. 
+
+InfluxDB is configured to run on port 8086 of our Debian server. In the compose.yaml file, we set up the initial user, as well as the organization and the initial bucket. We installed version 2.7.5-alpine of InfluxDB. However, we found that the web interface of InfluxDB of this version does not allow for changing the password of the initial user or for creating additional users, such as editors or readers. To address this limitation, we resorted to using console commands directly within the container on the server. Fortunately, the influx command was available, enabling us to create more users as needed.  
+
+The next interface needs to be configured between InfluxDB and Grafana. 
+
+## Grafana
+
