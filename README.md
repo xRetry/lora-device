@@ -1,14 +1,15 @@
 
 # Early Detection System for Natural Disasters
+## Project Outline
 This Master Data Science Project is a collaborative effort between the Chair of Automation and Measurement and the Chair of Information Technology. The objective is to implement an end-to-end system utilizing Internet of Things sensors and LoRaWAN communication technology to establish an early warning system for natural disasters. This system should provide timely data on environmental conditions that could indicate potential natural disasters. 
 
-## Project Objectives
+### Project Objectives
 The project’s core mission is to deploy IoT sensors that continuously monitor critical environmental parameters, such as temperature and humidity, which are critical for predicting natural disasters. The sensors transmit data via a LoRaWAN gateway across The Things Network to our dedicated server, where it is processed and stored. Node-RED is employed to handle the incoming data streams, ensuring that relevant data is efficiently routed to our InfluxDB database. This data is then visualized using Grafana, enabling real-time monitoring and the capability to predict and respond to disaster scenarios promptly. Additionally, the project implements multi-level user accounts in both InfluxDB and Grafana to manage access rights and enhance system security and to facilitate further use of the system for upcoming projects.
 
-## System Architecture and Components
+### System Architecture and Components
 Our system integrates IoT sensors for data collection and a LoRaWAN gateway that connects to The Things Network, a robust and globally accessible IoT network. This setup guarantees that data collected from remote locations is transmitted reliably, even under challenging conditions. The server, running on Debian and utilizing container technology,   ensures a secure, stable, and scalable platform for managing the data and system operations. Node-RED, a flexible and powerful tool, filters   and processes the data in real-time before it is stored in InfluxDB, a database chosen for its superior handling of time-series data. Grafana, connected to InfluxDB, offers dynamic visualization capabilities and is configured to alert administrators to potential natural disasters based on perceived trends.
 
-## Conclusion
+### Conclusion
 This project represents a significant step forward in utilizing advanced IoT and networking technologies for critical public safety applications. By leveraging the strengths of LoRaWAN, Node-RED, InfluxDB, and Grafana, the system will not only provide early warnings for natural disasters but also enhance our understanding of environmental patterns leading to these events.
 
 ## Hardware Components - Sensors, Microcontroller
