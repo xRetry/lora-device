@@ -1,3 +1,27 @@
+## Building Process
+
+Make sure, Infineon's [ModusToolbox](https://www.infineon.com/cms/en/design-support/tools/sdk/modustoolbox-software/) is installed on the system.
+
+Then, make sure you are in the root of this repository and install the dependencies with:
+
+```sh
+make getlibs
+```
+
+Next, make sure the microcontroller is connected via USB and the current user has read/write access to the device.
+
+```sh
+chmod u+rw /dev/ttyACM0
+```
+
+Finally, compile the program and flash in onto the microcontroller with:
+
+```sh
+make program
+```
+
+In case of errors during the flashing process, make sure the power to the LoRaWAN module is disconnected during flashing.
+
 ## Debian Setup
 
 The Debian installation follows the installer (non-desktop version).
@@ -49,7 +73,7 @@ passwd
 13. Generate Device address
 14. Generate AppSKey (application session key)
 15. Generate NwkSKey (network session key)
-16. Click `Advanced MAC settings` _ check `Reset frame counters`
+16. Click `Advanced MAC settings` → check `Reset frame counters`
 17. `Register end device`
 
 The following payload formatter converts the bytes of the message to decimal values:
@@ -63,7 +87,3 @@ function Decoder(bytes, port) {
     };
 }
 ```
-
-
-
-Trying to commit
