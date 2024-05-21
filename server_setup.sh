@@ -1,5 +1,6 @@
 #!/bin/sh
 
+set -e
 apt-get update 
 apt-get upgrade
 apt-get install -y git podman podman-compose
