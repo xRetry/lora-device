@@ -2,7 +2,7 @@
 
 Make sure, Infineon's [ModusToolbox](https://www.infineon.com/cms/en/design-support/tools/sdk/modustoolbox-software/) is installed on the system.
 
-Then, make sure you are in the root of this repository and install the dependencies with:
+Then, `cd` to the root of this repository and install the dependencies with:
 
 ```sh
 make getlibs
@@ -14,7 +14,7 @@ Next, make sure the microcontroller is connected via USB and the current user ha
 chmod u+rw /dev/ttyACM0
 ```
 
-Finally, compile the program and flash in onto the microcontroller with:
+Finally, compile the program and flash it onto the microcontroller with:
 
 ```sh
 make program
