@@ -155,7 +155,7 @@ These messages are further forwarded to a wide variety of user defined services,
 13. Generate Device address
 14. Generate AppSKey (application session key)
 15. Generate NwkSKey (network session key)
-16. Click `Advanced MAC settings` _ check `Reset frame counters`
+16. Click `Advanced MAC settings` → check `Reset frame counters`
 17. `Register end device`
 
 The following payload formatter converts the bytes of the message to decimal values:
