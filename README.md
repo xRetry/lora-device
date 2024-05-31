@@ -225,4 +225,21 @@ Creating additional users proved more challenging than expected. While it is pos
 The next interface that needs to be configured is between InfluxDB and Grafana. 
 
 ## Grafana
+Grafana is a leading open-source platform for monitoring and observability, widely used to visualize time-series data. It can create dynamic dashboards that are essential for visualizing data patterns and extracting actionable insights. Grafana can integrate with a variety of data sources including InfluxDB, Prometheus, and MySQL, among others. 
 
+Logging in with the admin user in the Grafana Web-Interface, we are able to configure the basic settings for the data source, using the following steps:
+1. Click Connections in the left-side menu.
+2. Under Your Connections, click Data Sources.
+3. Choose InfluxDB as data source.
+4. The Settings tab of the data source is displayed.
+
+For our setup, we chose:
+- Name: "Disaster Prevention"
+- Query Language: "InfluxQL"
+    - Allowed Cookies: 
+    - Database: ID of the bucket to query - EINFÜGEN!!!
+    - User: we chose the admin user of Influx DB
+    - Password: API-Token with the given rights
+    - HTTP mode: GET
+
+After clicking "Save & test", we were able to write queries and display the visualizations on a dashboard. 
