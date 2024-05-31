@@ -211,14 +211,16 @@ Finally, we create the connection from the MQTT in node to the influxdb out node
 This setup allows the seamless flow of data from The Things Network, received via MQTT, into our InfluxDB database for storage and further analysis.
 
 ## InfluxDB
-InfluxDB is an open-source time series database designed to handle high write and query loads, which is an essential feature in IoT contexts where devices generate vast amounts of time-stamped data. 
+InfluxDB is an open-source time series database designed to handle high write and query loads, which is an essential feature in IoT contexts where devices generate vast amounts of time-stamped data. InfluxDB operates based on organisations, buckets, and measurements. All of them define different things:
 
-InfluxDB is configured to run on port 8086 of our Debian server. 
+- Organsiation: the organsisation defines the main entity which administers and supervises a number of buckets and operates as a workspace for a group of users. All dashboards, buckets, and users belong to an organisation.
+- Bucket: a bucket is a named location where times series data is stored. It may hold a number of different tables, similar to a SQL database.
+- Measurement: a measurement is a table that holds various time series measurements. It is comparable to a SQL database table.
+
+InfluxDB is configured to run on port 8086 of our Debian server. The InfluxDB-version that will be used is 2.7.5-alpine. 
 In the compose.yaml file, we set up the initial user, as well as the organization and the initial bucket. 
-We installed version 2.7.5-alpine of InfluxDB. 
-However, we found that the web interface of InfluxDB of this version does not allow for changing the password of the initial user or for creating additional users, such as editors or readers. 
-To address this limitation, we resorted to using console commands directly within the container on the server. 
-Fortunately, the influx command was available, enabling us to create more users as needed.  
+
+Creating additional users proved more challenging than expected. While it is possible to create additional users using the console, it is not possible the administer the user-rights and privileges. For this, InfluxDB Cloud provides an option to create different API-Tokens that offer various rights to the user accessing the database with the said token. To ensure that future users, or students that build additional projects on the built infrastructure, are able to access the data, the python script `ConnectToInfluxDB.py` has been created. It enables reading and writing based on the granted rights of the API-token. 
 
 The next interface needs to be configured between InfluxDB and Grafana. 
 
