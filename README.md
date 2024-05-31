@@ -220,7 +220,7 @@ InfluxDB is an open-source time series database designed to handle high write an
 InfluxDB is configured to run on port 8086 of our Debian server. The InfluxDB-version that will be used is 2.7.5-alpine. 
 In the compose.yaml file, we set up the initial user, as well as the organization and the initial bucket. 
 
-Creating additional users proved more challenging than expected. While it is possible to create additional users using the console, it is not possible the administer the user-rights and privileges. For this, InfluxDB Cloud provides an option to create different API-Tokens that offer various rights to the user accessing the database with the said token. To ensure that future users, or students that build additional projects on the built infrastructure, are able to access the data, the python script `ConnectToInfluxDB.py` has been created. It enables reading and writing based on the granted rights of the API-token. 
+Creating additional users proved more challenging than expected. While it is possible to create additional users using the console, it is not possible to administer the user-rights and privileges. For this, InfluxDB Cloud provides an option to create different API-Tokens that offer various rights to the user accessing the database with the said token. To ensure that future users, or students that build additional projects on the built infrastructure, are able to access the data, the python script `ConnectToInfluxDB.py` has been created. It enables reading and writing based on the granted rights of the API-token. 
 
 The next interface needs to be configured between InfluxDB and Grafana. 
 
