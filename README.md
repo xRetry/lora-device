@@ -18,6 +18,8 @@ The server, running on Debian and utilizing container technology, ensures a secu
 Node-RED, a flexible and powerful tool, filters and processes the data in real-time before it is stored in InfluxDB, a database chosen for its superior handling of time-series data. 
 Grafana, connected to InfluxDB, offers dynamic visualization capabilities and is configured to alert administrators to potential natural disasters based on perceived trends.
 
+![System Architecture](architecture.png)
+
 ### Conclusion
 This project represents a significant step forward in utilizing advanced IoT and networking technologies for critical public safety applications. 
 By leveraging the strengths of LoRaWAN, Node-RED, InfluxDB, and Grafana, the system will not only provide early warnings for natural disasters but also enhance our understanding of environmental patterns leading to these events.
